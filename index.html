@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nail Scan Prototype</title>
+<meta name="theme-color" content="#0f0d1a">
+<style>
+  :root {
+    --bg: #0f0d1a;
+    --card: #1a1729;
+    --line: #2c2742;
+    --ink: #f5f2ff;
+    --quiet: #a59fc0;
+    --pink: #ff5fa2;
+    --pink-soft: rgba(255, 95, 162, 0.14);
+    --ok: #5fe0a8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: max(20px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom));
+  }
+  main { max-width: 440px; margin: 0 auto; }
+  .tag {
+    display: inline-block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--pink); background: var(--pink-soft); padding: 4px 10px; border-radius: 999px;
+  }
+  h1 { font-size: 28px; line-height: 1.2; margin: 14px 0 6px; }
+  p.lead { color: var(--quiet); margin: 0 0 24px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 18px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 16px; margin: 0 0 10px; }
+  ol.pose { margin: 0; padding-left: 20px; color: var(--quiet); }
+  ol.pose li { margin-bottom: 4px; }
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; min-height: 54px; border: 0; border-radius: 14px;
+    background: var(--pink); color: #1a0a12; font-size: 17px; font-weight: 650;
+    cursor: pointer;
+  }
+  .btn:active { transform: scale(.98); }
+  input[type=file] { display: none; }
+  .preview {
+    display: none; margin-top: 14px; border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--line); background: #000;
+  }
+  .preview img { display: block; width: 100%; height: auto; }
+  .note { font-size: 13px; color: var(--quiet); margin: 10px 0 0; }
+  .check { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .check:last-child { border-bottom: 0; }
+  .check span:first-child { color: var(--quiet); }
+  .good { color: var(--ok); font-weight: 600; }
+  footer { text-align: center; font-size: 12px; color: var(--quiet); margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <span class="tag">Stage 0 · Starter</span>
+  <h1>Nail Scan Prototype</h1>
+  <p class="lead">If you can see this page on your phone, Stage 0 is working. The hand and nail finder gets added in Stage 1.</p>
+
+  <section class="card">
+    <h2>How to hold your hand</h2>
+    <ol class="pose">
+      <li>Show the back of one hand</li>
+      <li>Spread your fingers slightly</li>
+      <li>Rest it flat, nails facing the camera</li>
+      <li>Use good, even light</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <label class="btn" for="photo">Take photo or choose from gallery</label>
+    <input id="photo" type="file" accept="image/*" capture="environment">
+    <div class="preview" id="preview"><img id="previewImg" alt="Your hand photo"></div>
+    <p class="note" id="photoNote">Your photo stays on this phone. Nothing is uploaded.</p>
+  </section>
+
+  <section class="card">
+    <h2>Phone check</h2>
+    <div class="check"><span>Page loaded</span><span class="good">Yes</span></div>
+    <div class="check"><span>Phone type</span><span id="device">Checking…</span></div>
+    <div class="check"><span>Photo picker</span><span id="picker">Not tried yet</span></div>
+  </section>
+
+  <footer>Nail try-on app · hand scan prototype</footer>
+</main>
+
+<script>
+  // Work out roughly what kind of phone this is, for the Android + iPhone check
+  (function () {
+    var ua = navigator.userAgent;
+    var kind = /iPhone|iPad|iPod/.test(ua) ? "iPhone / iPad"
+             : /Android/.test(ua) ? "Android"
+             : "Computer";
+    document.getElementById("device").textContent = kind;
+  })();
+
+  // Show the chosen photo on screen. It never leaves the phone.
+  document.getElementById("photo").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var url = URL.createObjectURL(file);
+    document.getElementById("previewImg").src = url;
+    document.getElementById("preview").style.display = "block";
+    var picker = document.getElementById("picker");
+    picker.textContent = "Works";
+    picker.className = "good";
+    document.getElementById("photoNote").textContent =
+      "Got it. In Stage 1 the scan will find your hand in this photo.";
+  });
+</script>
+</body>
+</html>
