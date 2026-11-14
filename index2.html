@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nail Scan Prototype</title>
+<meta name="theme-color" content="#0f0d1a">
+<style>
+  :root {
+    --bg: #0f0d1a;
+    --card: #1a1729;
+    --card2: #221e35;
+    --line: #2c2742;
+    --ink: #f5f2ff;
+    --quiet: #a59fc0;
+    --pink: #ff5fa2;
+    --pink-soft: rgba(255, 95, 162, 0.14);
+    --ok: #5fe0a8;
+    --ok-soft: rgba(95, 224, 168, 0.12);
+    --warn: #ffc65f;
+    --warn-soft: rgba(255, 198, 95, 0.12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: max(20px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+  }
+  main { max-width: 460px; margin: 0 auto; }
+  .tag {
+    display: inline-block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--pink); background: var(--pink-soft); padding: 4px 10px; border-radius: 999px;
+  }
+  h1 { font-size: 26px; line-height: 1.2; margin: 12px 0 4px; }
+  h2 { font-size: 17px; margin: 0 0 4px; }
+  p { margin: 0 0 10px; }
+  .quiet { color: var(--quiet); }
+  .small { font-size: 13px; }
+  .status { font-size: 13px; color: var(--quiet); margin: 0 0 18px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+  .dot.ready { background: var(--ok); }
+  .dot.bad { background: var(--pink); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 16px; margin-bottom: 14px;
+  }
+  .hidden { display: none !important; }
+
+  .example {
+    background: var(--card2); border: 1px solid var(--line); border-radius: 14px;
+    padding: 10px 10px 8px; margin: 12px 0; text-align: center; font-size: 13px; color: var(--quiet);
+  }
+  .example svg { display: block; width: 100%; max-width: 300px; height: auto; margin: 0 auto 4px; }
+
+  ol.tips { margin: 0 0 14px; padding-left: 20px; }
+  ol.tips li { margin-bottom: 4px; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; min-height: 54px; border: 0; border-radius: 14px;
+    background: var(--pink); color: #1a0a12; font-size: 17px; font-weight: 650;
+    cursor: pointer; text-align: center; padding: 0 12px;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+  .row { display: flex; gap: 10px; }
+  .row .btn { flex: 1; }
+  input[type=file] { display: none; }
+
+  .result canvas { display: block; width: 100%; height: auto; border-radius: 12px; background: #000; margin-bottom: 12px; }
+  .verdict { border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+  .verdict.good { background: var(--ok-soft); }
+  .verdict.problem { background: var(--pink-soft); }
+  .verdict.working { background: var(--card2); }
+  .verdict strong { display: block; font-size: 16px; margin-bottom: 2px; }
+  .verdict.good strong { color: var(--ok); }
+  .verdict.problem strong { color: var(--pink); }
+  .facts { font-size: 13px; color: var(--quiet); margin-bottom: 10px; }
+  ul.soft { margin: 0 0 12px; padding: 10px 12px 10px 30px; background: var(--warn-soft); border-radius: 12px; font-size: 14px; }
+  ul.soft li { margin-bottom: 2px; }
+  .ask { font-weight: 600; margin: 4px 0 10px; }
+
+  table.log { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 12px; }
+  table.log th, table.log td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  table.log th { color: var(--quiet); font-weight: 500; }
+  .y { color: var(--ok); } .n { color: var(--pink); }
+  .score { font-size: 15px; }
+  .linkbtn { background: none; border: 0; color: var(--quiet); text-decoration: underline; font-size: 13px; padding: 0; cursor: pointer; font-family: inherit; }
+  footer { text-align: center; font-size: 12px; color: var(--quiet); margin-top: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <span class="tag">Stage 1 · Find the hand</span>
+  <h1>Nail Scan Prototype</h1>
+  <p class="status"><span class="dot" id="statusDot"></span><span id="statusText">Getting the hand finder ready…</span></p>
+
+  <!-- GUIDE -->
+  <section class="card" id="guide">
+    <h2>Photo of one hand</h2>
+    <p class="quiet small">Left or right, it works out which by itself.</p>
+    <div class="example">
+      <svg viewBox="0 0 170 120" id="poseSvg" role="img" aria-label="A hand lying flat with the back of the hand up, fingers straight and slightly spread, all five nails showing"></svg>
+      Hand flat, back of the hand up, fingers slightly spread
+    </div>
+    <ol class="tips">
+      <li>Rest your hand flat on a table or your lap and hold the phone above it with your other hand.</li>
+      <li>Spread your fingers a little so all five nails, thumb included, show, with space past your nail tips.</li>
+      <li>Use bright, even light, with no shadows on your nails.</li>
+    </ol>
+    <label class="btn" for="photo">Take photo or choose from gallery</label>
+  </section>
+
+  <input id="photo" type="file" accept="image/*">
+
+  <!-- RESULT -->
+  <section class="card result hidden" id="resultCard">
+    <canvas id="view"></canvas>
+    <div class="verdict working" id="verdict"><strong id="verdictTitle">Scanning…</strong><span id="verdictText"></span></div>
+    <div class="facts"><span id="facts"></span> <button class="linkbtn hidden" type="button" id="switchBtn">Wrong hand?</button></div>
+    <ul class="soft hidden" id="softTips"></ul>
+    <div id="judge" class="hidden">
+      <p class="ask">Do the pink dots sit on all five nails, and the white dots on your knuckles?</p>
+      <div class="row">
+        <button class="btn" type="button" id="yesBtn">Yes</button>
+        <button class="btn ghost" type="button" id="noBtn">No</button>
+      </div>
+    </div>
+    <div id="retry" class="hidden">
+      <label class="btn" for="photo">Retake photo</label>
+    </div>
+    <div id="again" class="hidden">
+      <p class="quiet small">Saved to your test log. Try different light, nail styles and people.</p>
+      <label class="btn" for="photo">Scan another hand</label>
+    </div>
+  </section>
+
+  <!-- TEST LOG -->
+  <section class="card">
+    <h2>Your test log</h2>
+    <p class="score" id="score">No scans yet.</p>
+    <table class="log hidden" id="logTable">
+      <thead><tr><th>#</th><th>Hand</th><th>Dots right?</th><th>Time</th></tr></thead>
+      <tbody id="logBody"></tbody>
+    </table>
+    <button class="linkbtn hidden" type="button" id="clearBtn">Clear log</button>
+    <p class="quiet small" style="margin-top:8px">The Stage 1 goal: 10 scans where every dot looks right, each under 3 seconds. Photos stay on this phone; only these results are kept, and only on this phone.</p>
+  </section>
+
+  <footer>Nail try-on app · hand scan prototype</footer>
+</main>
+
+<script>
+/* ---------- Pose drawing: a hand lying flat, back up, fingers pointing right ---------- */
+(function drawPose() {
+  var skin = "#a8714f", line = "#6e4429", nail = "#ff5fa2";
+  // one finger: a rounded bar from the knuckles out to the right, with an almond nail on the end
+  function finger(y, len, h, angle) {
+    var x0 = 52, end = x0 + len, mid = y + h / 2;
+    var nailStart = end - 13, tip = end + 9;
+    return '<g transform="rotate(' + angle + ' ' + x0 + ' ' + mid + ')">' +
+      '<rect x="' + (x0 - 10) + '" y="' + y + '" width="' + (len + 10) + '" height="' + h + '" rx="' + (h / 2) + '" fill="' + skin + '" stroke="' + line + '" stroke-width="1.2"/>' +
+      '<path d="M' + nailStart + ' ' + (y + 2) + ' Q' + (tip - 3) + ' ' + (y + 2) + ' ' + tip + ' ' + mid +
+      ' Q' + (tip - 3) + ' ' + (y + h - 2) + ' ' + nailStart + ' ' + (y + h - 2) + ' Q' + (nailStart - 3) + ' ' + mid + ' ' + nailStart + ' ' + (y + 2) + 'Z" fill="' + nail + '"/>' +
+      '</g>';
+  }
+  var svg =
+    // thumb, angled down and out under the hand
+    '<g transform="rotate(14 40 92)">' +
+      '<rect x="22" y="86" width="72" height="15" rx="7.5" fill="' + skin + '" stroke="' + line + '" stroke-width="1.2"/>' +
+      '<path d="M80 88 Q100 88 104 93.5 Q100 99 80 99 Q77 93.5 80 88Z" fill="' + nail + '"/>' +
+    '</g>' +
+    finger(18, 62, 11, -9) +   // little finger
+    finger(33, 84, 13, -3) +   // ring
+    finger(49, 92, 13, 2) +    // middle
+    finger(65, 80, 13, 8) +    // index
+    // back of the hand, running off the left edge like a real photo
+    '<path d="M-6 24 C14 16 40 14 54 20 C66 32 66 70 58 84 C40 96 14 98 -6 92 Z" fill="' + skin + '" stroke="' + line + '" stroke-width="1.2"/>' +
+    '<path d="M30 36 Q36 46 32 58 M38 42 Q42 54 38 66" stroke="' + line + '" stroke-width="1" fill="none" opacity=".35"/>';
+  document.getElementById("poseSvg").innerHTML = svg;
+})();
+</script>
+
+<script type="module">
+import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/vision_bundle.mjs";
+
+const WASM_PATH  = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm";
+const MODEL_PATH = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const MAX_SIDE = 1024;      // photos are shrunk to this size before scanning
+const TARGET_SECONDS = 3;   // Stage 1 speed goal
+const LOG_KEY = "nailscan-log-v2";
+
+// Lines that join the 21 dots, so the hand map is easy to read
+const LINKS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],
+               [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const FINGERS = [[5,6,8],[9,10,12],[13,14,16],[17,18,20]]; // knuckle, middle joint, tip
+const NAILS = [[3,4],[7,8],[11,12],[15,16],[19,20]];        // last joint and tip of each finger, thumb first
+
+const $ = (id) => document.getElementById(id);
+const state = { last: null, log: loadLog() };
+
+/* ---------- Hand finder setup ---------- */
+let vision = null, finder = null, onGPU = true;
+async function makeFinder(delegate) {
+  return HandLandmarker.createFromOptions(vision, {
+    baseOptions: { modelAssetPath: MODEL_PATH, delegate },
+    runningMode: "IMAGE",
+    numHands: 2,
+  });
+}
+const finderReady = (async () => {
+  vision = await FilesetResolver.forVisionTasks(WASM_PATH);
+  try { finder = await makeFinder("GPU"); }
+  catch (e) { onGPU = false; finder = await makeFinder("CPU"); }
+  // Warm-up run so the first real scan isn't slowed down by start-up work
+  const warm = document.createElement("canvas"); warm.width = warm.height = 64;
+  warm.getContext("2d").fillRect(0, 0, 64, 64);
+  try { finder.detect(warm); } catch (e) { await switchToCPU(); finder.detect(warm); }
+})();
+finderReady.then(
+  () => setStatus("ready", "Hand finder ready. Everything runs on this phone."),
+  (e) => { console.error(e); setStatus("bad", "Couldn't load the hand finder. Check your internet connection and refresh the page."); }
+);
+async function switchToCPU() {
+  if (!onGPU) return;
+  onGPU = false;
+  try { finder.close(); } catch (e) {}
+  finder = await makeFinder("CPU");
+}
+async function findHands(canvas) {
+  try { return finder.detect(canvas); }
+  catch (e) { if (!onGPU) throw e; await switchToCPU(); return finder.detect(canvas); }
+}
+function setStatus(kind, text) {
+  $("statusDot").className = "dot" + (kind === "ready" ? " ready" : kind === "bad" ? " bad" : "");
+  $("statusText").textContent = text;
+}
+
+/* ---------- Buttons ---------- */
+$("photo").addEventListener("change", (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ""; // lets the same photo be picked again
+  if (file) handlePhoto(file);
+});
+$("yesBtn").addEventListener("click", () => judged(true));
+$("noBtn").addEventListener("click", () => judged(false));
+$("switchBtn").addEventListener("click", () => {
+  const v = state.last; if (!v) return;
+  v.hand = v.hand === "left" ? "right" : "left";
+  $("facts").textContent = factsLine(v);
+});
+$("clearBtn").addEventListener("click", () => { state.log = []; saveLog(); renderLog(); });
+
+/* ---------- One photo, start to finish ---------- */
+async function handlePhoto(file) {
+  showWorking();
+  let canvas, quality, result;
+  const started = performance.now();
+  try {
+    const img = await openImage(file);
+    canvas = shrink(img);
+    quality = checkQuality(canvas);
+    await finderReady;
+    result = await findHands(canvas);
+  } catch (e) {
+    console.error(e);
+    return showProblem(null, "We couldn't open that photo", "Try taking a new photo, or pick a different one from your gallery.");
+  }
+  const v = judge(result, quality);
+  v.seconds = (performance.now() - started) / 1000;
+  drawMap(canvas, result);
+  if (v.seconds > TARGET_SECONDS) v.soft.push("This scan took longer than 3 seconds. Note it in your scorecard.");
+  if (!v.ok) return showProblem(v, v.title, v.text);
+  showGood(v);
+}
+
+function openImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Photo could not be opened"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// Shrink big photos so scanning stays quick on older phones
+function shrink(img) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const scale = Math.min(1, MAX_SIDE / Math.max(w, h));
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+
+// Brightness (0 dark – 255 bright), contrast and sharpness, measured on a small copy
+function checkQuality(src) {
+  const W = 320, H = Math.max(1, Math.round(src.height * W / src.width));
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(src, 0, 0, W, H);
+  const d = ctx.getImageData(0, 0, W, H).data;
+  const g = new Float32Array(W * H);
+  let sum = 0;
+  for (let i = 0; i < W * H; i++) {
+    const v = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+    g[i] = v; sum += v;
+  }
+  const avg = sum / (W * H);
+  let spread = 0;
+  for (let i = 0; i < W * H; i++) spread += (g[i] - avg) * (g[i] - avg);
+  let n = 0, m = 0, m2 = 0;
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    const i = y * W + x;
+    const lap = g[i - 1] + g[i + 1] + g[i - W] + g[i + W] - 4 * g[i];
+    n++; m += lap; m2 += lap * lap;
+  }
+  const mean = m / n;
+  return { brightness: avg, contrast: Math.sqrt(spread / (W * H)), sharpness: m2 / n - mean * mean };
+}
+const isDark = (q) => q.brightness < 60;
+const isBright = (q) => q.brightness > 225;
+const isBlurry = (q) => q.sharpness < 12;
+
+/* ---------- Judging the photo ---------- */
+const inside = (p) => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1;
+function bendAngle(a, b, c) { // how far a finger bends at joint b, in degrees (0 = straight)
+  const u = [b.x - a.x, b.y - a.y, b.z - a.z], v = [c.x - b.x, c.y - b.y, c.z - b.z];
+  const dot = u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+  const len = Math.hypot(...u) * Math.hypot(...v) || 1;
+  return Math.acos(Math.max(-1, Math.min(1, dot / len))) * 180 / Math.PI;
+}
+
+function judge(result, q) {
+  const count = result.landmarks.length;
+  if (count === 0) {
+    if (isDark(q)) return problem("Too dark to find your hand", "Move somewhere brighter, like near a window, and try again.");
+    if (isBlurry(q) && q.contrast > 12) return problem("The photo is too blurry", "Hold the phone still for a second before you take the photo.");
+    return problem("We couldn't find a hand", "Rest your hand flat with the back facing up, fit all five nails in the photo, and try again.");
+  }
+  if (count > 1) return problem("We found two hands", "Show just one hand. Move your other hand out of the photo.");
+
+  const lm = result.landmarks[0], world = result.worldLandmarks[0];
+  const v = { lm, soft: softTips(q, lm) };
+
+  // Every nail must be in the photo (the wrist doesn't matter)
+  if (!NAILS.every(([joint, tip]) => inside(lm[joint]) && inside(lm[tip])))
+    return { ...v, ...problem("Some nails are cut off", "Move the phone back a little so all five nails, thumb included, fit in the photo.") };
+
+  // Long nails reach past the fingertip, so check there's room beyond each tip
+  const nearEdge = NAILS.some(([joint, tip]) => {
+    const a = lm[joint], b = lm[tip];
+    return !inside({ x: b.x + (b.x - a.x) * 0.9, y: b.y + (b.y - a.y) * 0.9 });
+  });
+  if (nearEdge) v.soft.push("Your nail tips are close to the edge of the photo. Leave a little space past them.");
+
+  // Fingers should lie straight
+  const bentFingers = FINGERS.filter(([k, m, t]) => bendAngle(world[k], world[m], world[t]) > 70).length;
+  if (bentFingers >= 2)
+    return { ...v, ...problem("Lay your fingers flat and straight", "Rest your hand flat, back facing up, with fingers straight and slightly apart.") };
+
+  // Left or right? In this pose the back of the hand faces the camera, so the way
+  // the knuckles turn tells us which hand it is.
+  const w = lm[0], i = lm[5], p = lm[17];
+  const turn = (i.x - w.x) * (p.y - w.y) - (i.y - w.y) * (p.x - w.x);
+  const hand = turn > 0 ? "right" : "left";
+  // The hand finder also guesses left or right from how the hand looks. If it confidently
+  // disagrees, the palm is probably facing up instead of the back of the hand.
+  const guess = result.handedness && result.handedness[0] && result.handedness[0][0];
+  if (guess && guess.score >= 0.8 && guess.categoryName.toLowerCase() !== hand)
+    return { ...v, hand: null, ...problem("Your palm seems to be facing up", "Turn your hand over so the back of your hand and your nails face the camera.") };
+
+  return { ...v, hand, ok: true, title: "Hand found", text: "21 dots placed: five on your nails, the rest on your knuckles and wrist." };
+}
+function problem(title, text) { return { ok: false, title, text, soft: [] }; }
+function softTips(q, lm) {
+  const tips = [];
+  if (isDark(q)) tips.push("The photo is a bit dark. Brighter light will help find your nails later.");
+  if (isBright(q)) tips.push("There's a lot of glare. Try softer light so your nails don't shine white.");
+  if (isBlurry(q)) tips.push("The photo is a little blurry. Hold the phone still.");
+  const tipsPts = [4, 8, 12, 16, 20].map((k) => lm[k]);
+  const xs = tipsPts.map((p) => p.x), ys = tipsPts.map((p) => p.y);
+  const spread = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  if (spread < 0.3) tips.push("Your hand looks small in the photo. Move the phone a bit closer.");
+  return tips;
+}
+
+/* ---------- Drawing the hand map ---------- */
+function drawMap(src, result) {
+  const view = $("view");
+  view.width = src.width; view.height = src.height;
+  const ctx = view.getContext("2d");
+  ctx.drawImage(src, 0, 0);
+  if (!result) return;
+  const s = Math.max(src.width, src.height) / 1024;
+  result.landmarks.forEach((lm) => {
+    const pt = (k) => [lm[k].x * src.width, lm[k].y * src.height];
+    ctx.strokeStyle = "rgba(255,255,255,.85)";
+    ctx.lineWidth = 3 * s;
+    LINKS.forEach(([a, b]) => { ctx.beginPath(); ctx.moveTo(...pt(a)); ctx.lineTo(...pt(b)); ctx.stroke(); });
+    lm.forEach((_, k) => {
+      const tip = [4, 8, 12, 16, 20].includes(k);
+      ctx.beginPath();
+      ctx.arc(...pt(k), (tip ? 9 : 6) * s, 0, Math.PI * 2);
+      ctx.fillStyle = tip ? "#ff5fa2" : "#ffffff";
+      ctx.fill();
+      ctx.lineWidth = 2 * s; ctx.strokeStyle = "#1a0a12"; ctx.stroke();
+    });
+  });
+}
+
+/* ---------- Showing results ---------- */
+function showWorking() {
+  state.last = null;
+  $("guide").classList.add("hidden");
+  $("resultCard").classList.remove("hidden");
+  $("verdict").className = "verdict working";
+  $("verdictTitle").textContent = "Scanning…";
+  $("verdictText").textContent = "";
+  $("facts").textContent = "";
+  ["softTips", "judge", "retry", "again", "switchBtn"].forEach((id) => $(id).classList.add("hidden"));
+  const c = $("view"); c.width = 1; c.height = 1;
+}
+function factsLine(v) {
+  const bits = [];
+  if (v.hand) bits.push(v.hand === "left" ? "Left hand" : "Right hand");
+  if (v.seconds != null) bits.push(v.seconds.toFixed(1) + " seconds");
+  return bits.join(" · ");
+}
+function showSoft(list) {
+  const ul = $("softTips");
+  ul.innerHTML = "";
+  (list || []).forEach((t) => { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+  ul.classList.toggle("hidden", !list || !list.length);
+}
+function showProblem(v, title, text) {
+  $("verdict").className = "verdict problem";
+  $("verdictTitle").textContent = title;
+  $("verdictText").textContent = text;
+  $("facts").textContent = v ? factsLine(v) : "";
+  showSoft(v ? v.soft : []);
+  $("retry").classList.remove("hidden");
+  $("resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function showGood(v) {
+  state.last = v;
+  $("verdict").className = "verdict good";
+  $("verdictTitle").textContent = v.title;
+  $("verdictText").textContent = v.text;
+  $("facts").textContent = factsLine(v);
+  $("switchBtn").classList.remove("hidden");
+  showSoft(v.soft);
+  $("judge").classList.remove("hidden");
+  $("resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function judged(looksRight) {
+  const v = state.last; if (!v) return;
+  state.last = null;
+  state.log.push({ hand: v.hand, right: looksRight, secs: v.seconds, when: Date.now() });
+  saveLog(); renderLog();
+  $("judge").classList.add("hidden");
+  $("switchBtn").classList.add("hidden");
+  $("again").classList.remove("hidden");
+}
+
+/* ---------- Test log (results only, kept on this phone) ---------- */
+function loadLog() { try { return JSON.parse(localStorage.getItem(LOG_KEY)) || []; } catch (e) { return []; } }
+function saveLog() { try { localStorage.setItem(LOG_KEY, JSON.stringify(state.log)); } catch (e) {} }
+function renderLog() {
+  const body = $("logBody"); body.innerHTML = "";
+  const passes = state.log.filter((r) => r.right && r.secs <= TARGET_SECONDS).length;
+  state.log.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${i + 1}</td><td>${r.hand === "left" ? "Left" : "Right"}</td>` +
+      `<td><span class="${r.right ? "y" : "n"}">${r.right ? "✓ Yes" : "✗ No"}</span></td>` +
+      `<td class="${r.secs <= TARGET_SECONDS ? "" : "n"}">${r.secs.toFixed(1)}s</td>`;
+    body.appendChild(tr);
+  });
+  $("logTable").classList.toggle("hidden", !state.log.length);
+  $("clearBtn").classList.toggle("hidden", !state.log.length);
+  $("score").innerHTML = state.log.length
+    ? `<strong>${passes}</strong> passing ${passes === 1 ? "scan" : "scans"} so far (goal: 10)${passes >= 10 ? " · Stage 1 done!" : ""}`
+    : "No scans yet.";
+}
+renderLog();
+</script>
+</body>
+</html>
