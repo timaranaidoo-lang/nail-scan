@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Live Nail Try-On (test)</title>
+<meta name="theme-color" content="#0f0d1a">
+<style>
+  :root {
+    --bg: #0f0d1a; --card: #1a1729; --card2: #221e35; --line: #2c2742;
+    --ink: #f5f2ff; --quiet: #a59fc0; --pink: #ff5fa2; --pink-soft: rgba(255,95,162,.14);
+    --ok: #5fe0a8; --warn: #ffc65f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5;
+    padding: max(14px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom));
+  }
+  main { max-width: 520px; margin: 0 auto; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .tag { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--pink); background: var(--pink-soft); padding: 4px 10px; border-radius: 999px; }
+  .top a { color: var(--quiet); font-size: 13px; }
+  h1 { font-size: 22px; margin: 0 0 10px; }
+  .stage { position: relative; background: #000; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); min-height: 220px; display: flex; align-items: center; justify-content: center; }
+  #view { display: block; max-width: 100%; max-height: 58vh; }
+  #view.mirrored { transform: scaleX(-1); }
+  video { display: none; }
+  .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; text-align: center; background: rgba(15,13,26,.92); }
+  .overlay p { margin: 0; color: var(--quiet); font-size: 14px; max-width: 320px; }
+  .hint { position: absolute; left: 10px; right: 10px; bottom: 10px; text-align: center; font-size: 13px; background: rgba(15,13,26,.78); border-radius: 10px; padding: 6px 10px; }
+  .fps { position: absolute; top: 8px; left: 8px; font-size: 11px; color: var(--quiet); background: rgba(15,13,26,.7); border-radius: 8px; padding: 2px 7px; }
+  .hidden { display: none !important; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border: 0; border-radius: 14px; background: var(--pink); color: #1a0a12; font-size: 16px; font-weight: 650; cursor: pointer; font-family: inherit; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+  .row { display: flex; gap: 10px; margin-top: 10px; }
+  .row .btn { flex: 1; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-top: 12px; }
+  .label { font-size: 13px; color: var(--quiet); margin: 0 0 8px; display: flex; justify-content: space-between; }
+  .label + * { margin-bottom: 14px; }
+  .card > :last-child { margin-bottom: 0; }
+  .swatches { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; }
+  .swatch { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--card); outline: 2px solid var(--line); cursor: pointer; padding: 0; }
+  .swatch.on { outline-color: var(--pink); outline-width: 3px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--card2); color: var(--ink); border: 1.5px solid var(--line); font-size: 14px; cursor: pointer; font-family: inherit; }
+  .chip.on { border-color: var(--pink); background: var(--pink-soft); }
+  input[type=range] { width: 100%; accent-color: var(--pink); height: 32px; }
+  details summary { cursor: pointer; font-size: 14px; color: var(--quiet); padding: 4px 0; }
+  details[open] summary { margin-bottom: 10px; }
+  .small { font-size: 13px; color: var(--quiet); margin: 12px 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <span class="tag">Live try-on · test</span>
+    <a href="index.html">Photo scan test</a>
+  </div>
+  <h1>Live Nail Try-On</h1>
+
+  <div class="stage">
+    <canvas id="view" width="640" height="480"></canvas>
+    <video id="cam" playsinline muted></video>
+    <div class="fps hidden" id="fps"></div>
+    <div class="hint hidden" id="hint"></div>
+    <div class="overlay" id="startOverlay">
+      <p id="startText">Point the camera at the back of your hand and the nails appear on it, live.</p>
+      <button class="btn" type="button" id="startBtn">Start camera</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <button class="btn ghost" type="button" id="flipBtn">Flip camera</button>
+    <button class="btn ghost" type="button" id="snapBtn">Save picture</button>
+  </div>
+
+  <section class="card">
+    <p class="label">Colour</p>
+    <div class="swatches" id="swatches"></div>
+    <p class="label">Shape</p>
+    <div class="chips" id="shapes"></div>
+    <p class="label"><span>Length</span><span id="lengthName">Medium</span></p>
+    <input type="range" id="length" min="1.1" max="3.4" step="0.05" value="1.9" aria-label="Nail length">
+    <p class="label">Finish</p>
+    <div class="chips" id="finishes"></div>
+    <details>
+      <summary>Adjust the fit</summary>
+      <p class="label"><span>Nail size</span><span id="sizeVal">100%</span></p>
+      <input type="range" id="size" min="0.7" max="1.4" step="0.01" value="1" aria-label="Nail size">
+      <p class="label"><span>Slide along the finger</span><span>cuticle ↔ tip</span></p>
+      <input type="range" id="slide" min="-0.25" max="0.25" step="0.01" value="0" aria-label="Slide along the finger">
+    </details>
+  </section>
+
+  <section class="card">
+    <p class="label">Help teach the nail finder</p>
+    <button class="btn ghost" type="button" id="trainBtn" style="width:100%">Save a clean photo for training</button>
+    <p class="small" style="margin-top:8px">Saves the camera picture without the painted nails to this device. Only save photos of people who have said yes, and keep them private (never upload them to GitHub).</p>
+  </section>
+
+  <p class="small">This is an early test. The nails are placed from the hand's tracked points, so they may sit a little off your real nails; use "Adjust the fit" to line them up. The camera picture stays on this device.</p>
+</main>
+
+<script type="module">
+const LIB_PATH   = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/vision_bundle.mjs";
+const WASM_PATH  = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm";
+const MODEL_PATH = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const $ = (id) => document.getElementById(id);
+
+/* ---------- What the customer can pick ---------- */
+const DESIGNS = [
+  { id: "red",    name: "Classic red", kind: "solid", colour: "#c1121f" },
+  { id: "pink",   name: "Hot pink",    kind: "solid", colour: "#ff5fa2" },
+  { id: "nude",   name: "Nude",        kind: "solid", colour: "#e3b7a0" },
+  { id: "navy",   name: "Midnight",    kind: "solid", colour: "#1d2a5c" },
+  { id: "green",  name: "Emerald",     kind: "solid", colour: "#0f7a5a" },
+  { id: "lilac",  name: "Lilac",       kind: "solid", colour: "#b9a2e8" },
+  { id: "black",  name: "Black",       kind: "solid", colour: "#15131c" },
+  { id: "milk",   name: "Milky white", kind: "solid", colour: "#f4eee8" },
+  { id: "french", name: "French tip",  kind: "french", colour: "#eec4b4", tip: "#fbf7f2" },
+  { id: "cateye", name: "Blue cat-eye", kind: "cateye", colour: "#16306e", light: "#a8cdf8" },
+];
+const SHAPES = ["Round", "Square", "Almond", "Coffin", "Stiletto"];
+const FINISHES = ["Glossy", "Matte"];
+const pick = { design: DESIGNS[1], shape: "Almond", finish: "Glossy", length: 1.9, size: 1, slide: 0 };
+
+DESIGNS.forEach((d) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "swatch" + (d === pick.design ? " on" : ""); b.title = d.name; b.setAttribute("aria-label", d.name);
+  b.style.background = d.kind === "french" ? `linear-gradient(180deg, ${d.tip} 0 32%, ${d.colour} 32%)`
+                     : d.kind === "cateye" ? `linear-gradient(110deg, ${d.colour} 25%, ${d.light} 50%, ${d.colour} 75%)` : d.colour;
+  b.addEventListener("click", () => { pick.design = d; [...$("swatches").children].forEach((x) => x.classList.toggle("on", x === b)); });
+  $("swatches").appendChild(b);
+});
+function chips(holder, names, key) {
+  names.forEach((n) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip" + (pick[key] === n ? " on" : ""); b.textContent = n;
+    b.addEventListener("click", () => { pick[key] = n; [...holder.children].forEach((x) => x.classList.toggle("on", x === b)); });
+    holder.appendChild(b);
+  });
+}
+chips($("shapes"), SHAPES, "shape");
+chips($("finishes"), FINISHES, "finish");
+$("length").addEventListener("input", (e) => {
+  pick.length = +e.target.value;
+  $("lengthName").textContent = pick.length < 1.4 ? "Short" : pick.length < 2.1 ? "Medium" : pick.length < 2.8 ? "Long" : "Extra long";
+});
+$("size").addEventListener("input", (e) => { pick.size = +e.target.value; $("sizeVal").textContent = Math.round(pick.size * 100) + "%"; });
+$("slide").addEventListener("input", (e) => { pick.slide = +e.target.value; });
+
+/* ---------- Small 3D maths helpers ---------- */
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const mul = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const len = (a) => Math.hypot(a[0], a[1], a[2]);
+const norm = (a) => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+
+/* ---------- Smoothing, so the nails don't shimmer ----------
+   Steady when the hand is still, quick to follow when it moves. */
+class Smooth {
+  constructor(minCut, beta) { this.minCut = minCut; this.beta = beta; this.x = null; this.dx = 0; this.t = 0; }
+  static a(dt, cut) { const tau = 1 / (2 * Math.PI * cut); return 1 / (1 + tau / dt); }
+  next(x, t) {
+    if (this.x === null) { this.x = x; this.t = t; return x; }
+    const dt = Math.max((t - this.t) / 1000, 1e-3);
+    const ad = Smooth.a(dt, 1);
+    this.dx = ad * ((x - this.x) / dt) + (1 - ad) * this.dx;
+    const a = Smooth.a(dt, this.minCut + this.beta * Math.abs(this.dx));
+    this.x = a * x + (1 - a) * this.x; this.t = t;
+    return this.x;
+  }
+}
+const tracks = {}; // one set of smoothers per hand
+function smoothHand(key, lm, W, H, t) {
+  let tr = tracks[key];
+  if (!tr || t - tr.seen > 400) {
+    tr = tracks[key] = { pts: [], scale: new Smooth(0.4, 0.002) };
+    for (let i = 0; i < 21; i++) tr.pts.push([new Smooth(1.6, 0.02), new Smooth(1.6, 0.02), new Smooth(0.8, 0.01)]);
+  }
+  tr.seen = t;
+  // each point: across, down, and depth (towards the camera is negative), all in screen pixels
+  return { track: tr, P: lm.map((p, i) => [tr.pts[i][0].next(p.x * W, t), tr.pts[i][1].next(p.y * H, t), tr.pts[i][2].next(p.z * W, t)]) };
+}
+
+/* ---------- Where each nail sits, in 3D ----------
+   Sizes come from normal hand proportions, measured in "hand units"
+   (1 unit = the index finger's first bone, knuckle to middle joint, about 4 cm).
+   d = last joint, t = fingertip, bone = that fingertip bone's usual length, width = usual nail width. */
+const FINGERS = [
+  { name: "Thumb",  d: 3,  t: 4,  bone: 0.535, width: 0.28, thumb: true },
+  { name: "Index",  d: 7,  t: 8,  bone: 0.43,  width: 0.22 },
+  { name: "Middle", d: 11, t: 12, bone: 0.455, width: 0.23 },
+  { name: "Ring",   d: 15, t: 16, bone: 0.435, width: 0.215 },
+  { name: "Little", d: 19, t: 20, bone: 0.35,  width: 0.175 },
+];
+// usual bone lengths, in hand units (none of them use the wrist, which is often outside the picture)
+const BONES = [[5, 6, 1], [6, 7, 0.575], [7, 8, 0.43], [9, 10, 1.05], [10, 11, 0.62], [11, 12, 0.455], [13, 14, 0.935], [14, 15, 0.565],
+               [15, 16, 0.435], [17, 18, 0.72], [18, 19, 0.42], [19, 20, 0.35], [1, 2, 0.68], [2, 3, 0.645], [3, 4, 0.535], [5, 17, 1.3]];
+const CUTICLE_AT = 0.66;    // how far from the last joint to the fingertip the nail starts
+const FINGER_DEPTH = 0.11;  // the tracked points sit inside the finger; the nail sits on top
+const C_CURVE = 0.32;       // how much the nail curves down at its sides
+
+function nailsForHand(hand, isRight, t) {
+  const { P, track } = hand;
+  // Screen pixels per hand unit. A bone looks shorter on screen when it tilts towards the camera,
+  // so the bones that look longest for their usual length give the true size of the hand.
+  const ratios = BONES.map(([a, b, usual]) => Math.hypot(P[a][0] - P[b][0], P[a][1] - P[b][1]) / usual).sort((p, q) => p - q);
+  const K = track.scale.next(ratios[Math.floor(ratios.length * 0.8)], t);
+  if (!(K > 0)) return [];
+  const knuckles = sub(P[5], P[17]);
+  const v1 = sub(P[5], P[0]), v2 = sub(P[17], P[0]);
+  const backN = norm(isRight ? cross(v2, v1) : cross(v1, v2)); // which way the back of the hand faces
+
+  return FINGERS.map((f) => {
+    const bone = sub(P[f.t], P[f.d]), l2 = Math.hypot(bone[0], bone[1]);
+    if (l2 < 2) return null;
+    // Which way the fingertip points. Tilt towards or away from the camera comes from the depth reading,
+    // double-checked against how short the bone looks on screen.
+    const flat = Math.min(l2 / (len(bone) || 1), clamp(l2 / (K * f.bone) + 0.08, 0.35, 1));
+    const u = [bone[0] / l2 * flat, bone[1] / l2 * flat, Math.sign(bone[2] || 1) * Math.sqrt(1 - flat * flat)];
+    // Which way the nail faces
+    let n0;
+    if (f.thumb) {
+      let away = sub(P[2], P[5]);
+      away = norm(sub(away, mul(backN, dot(away, backN))));
+      n0 = norm(add(mul(backN, 0.85), mul(away, 0.45))); // the thumbnail faces up and a little outwards
+    } else {
+      n0 = isRight ? cross(u, knuckles) : cross(knuckles, u); // fingers hinge along the knuckle line
+    }
+    const lat = norm(cross(u, n0)), n = norm(cross(lat, u));
+    const W = f.width * K * pick.size / 2;   // half the nail's width, in pixels
+    const Ln = W * 2 * pick.length;          // nail length, in pixels
+    const cut = CUTICLE_AT + pick.slide, lift = FINGER_DEPTH * K;
+    const bx = P[f.d][0] + bone[0] * cut + lift * n[0], by = P[f.d][1] + bone[1] * cut + lift * n[1];
+    const map = (s, tt) => {
+      const h = -C_CURVE * tt * tt / W;
+      return [bx + s * u[0] + tt * lat[0] + h * n[0], by + s * u[1] + tt * lat[1] + h * n[1]];
+    };
+    return { name: f.name, map, W, Ln, n, facing: -n[2] };
+  }).filter(Boolean);
+}
+
+/* ---------- Nail shapes ---------- */
+function halfWidth(s, W, Ln, shape) {
+  const b = Math.min(0.9 * W, Ln * 0.45);
+  const base = s < b ? Math.sqrt(Math.max(0, 1 - ((b - s) / b) ** 2)) : 1; // rounded cuticle end
+  const s1 = shape === "Almond" ? Math.max(b, Ln * 0.38) : b;
+  const x = clamp((s - s1) / (Ln - s1), 0, 1);
+  let tip = 1;
+  if (shape === "Round") { const e = Math.min(0.85 * W, Ln - b), y = (s - (Ln - e)) / e; tip = y > 0 ? Math.sqrt(Math.max(0, 1 - y * y)) : 1; }
+  else if (shape === "Square") { const e = 0.2 * W, y = (s - (Ln - e)) / e; tip = y > 0 ? 1 - 0.12 * y * y : 1; }
+  else if (shape === "Almond") tip = Math.pow(Math.max(0, 1 - Math.pow(x, 1.7)), 0.7);
+  else if (shape === "Stiletto") tip = Math.pow(1 - x, 0.85);
+  else if (shape === "Coffin") tip = 1 - 0.48 * x;
+  return W * Math.min(base, tip);
+}
+function outline(W, Ln, shape) {
+  const N = 18, left = [], right = [];
+  for (let i = 0; i <= N; i++) {
+    const s = Ln * (0.5 - 0.5 * Math.cos(Math.PI * i / N)), hw = halfWidth(s, W, Ln, shape);
+    left.push([s, -hw]); right.push([s, hw]);
+  }
+  return left.concat(right.reverse());
+}
+function trace(ctx, pts) {
+  ctx.beginPath();
+  pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+  ctx.closePath();
+}
+
+/* ---------- Painting one nail ---------- */
+function drawNail(ctx, nail) {
+  const alpha = clamp((nail.facing - 0.05) / 0.25, 0, 1); // fades out as the nail turns away from the camera
+  if (alpha <= 0) return false;
+  const { map, W, Ln, n } = nail, d = pick.design, glossy = pick.finish === "Glossy";
+  const pts = outline(W, Ln, pick.shape).map(([s, t]) => map(s, t));
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const box = [Math.min(...xs) - 2, Math.min(...ys) - 2, Math.max(...xs) - Math.min(...xs) + 4, Math.max(...ys) - Math.min(...ys) + 4];
+  const A = map(Ln * 0.5, -W), B = map(Ln * 0.5, W);
+  const shine = clamp(0.5 + n[0] * 0.9, 0.18, 0.82); // the bright band slides across as the nail tilts
+
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.97;
+  trace(ctx, pts); ctx.fillStyle = d.colour; ctx.fill();
+  ctx.save();
+  trace(ctx, pts); ctx.clip();
+  if (d.kind === "french") {
+    const tipD = Math.min(0.9 * W, Ln * 0.3), line = [];
+    for (let i = 0; i <= 12; i++) { const t = -W * 1.2 + 2.4 * W * i / 12; line.push(map(Ln - tipD * (0.7 + 0.5 * (t / W) ** 2), t)); }
+    line.push(map(Ln * 1.2, W * 1.2), map(Ln * 1.2, -W * 1.2));
+    trace(ctx, line); ctx.fillStyle = d.tip; ctx.fill();
+  }
+  if (d.kind === "cateye") {
+    const g = ctx.createLinearGradient(A[0], A[1], B[0], B[1]);
+    g.addColorStop(0, d.colour); g.addColorStop(clamp(shine - 0.22, 0.01, 0.98), d.colour);
+    g.addColorStop(shine, d.light); g.addColorStop(clamp(shine + 0.22, 0.02, 0.99), d.colour); g.addColorStop(1, d.colour);
+    ctx.fillStyle = g; ctx.fillRect(...box);
+  }
+  // shading: darker at the curved sides, lighter where the light catches it
+  const g = ctx.createLinearGradient(A[0], A[1], B[0], B[1]);
+  g.addColorStop(0, "rgba(0,0,0,.34)"); g.addColorStop(clamp(shine - 0.3, 0.02, 0.9), "rgba(0,0,0,.06)");
+  g.addColorStop(shine, glossy ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.07)");
+  g.addColorStop(clamp(shine + 0.3, 0.1, 0.98), "rgba(0,0,0,.06)"); g.addColorStop(1, "rgba(0,0,0,.34)");
+  ctx.fillStyle = g; ctx.fillRect(...box);
+  if (glossy) { // a soft streak of shine along the nail
+    const t = W * (shine * 2 - 1) * 0.7, hw = (s) => halfWidth(s, W, Ln, pick.shape) / W;
+    ctx.beginPath();
+    for (let i = 0; i <= 8; i++) { const s = Ln * (0.16 + 0.5 * i / 8), p = map(s, t * hw(s)); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }
+    ctx.lineCap = "round"; ctx.lineWidth = Math.max(1.5, W * 0.2);
+    ctx.strokeStyle = "rgba(255,255,255,.42)"; ctx.stroke();
+  }
+  ctx.restore();
+  trace(ctx, pts); ctx.lineJoin = "round"; ctx.lineWidth = Math.max(1, W * 0.07); ctx.strokeStyle = "rgba(20,8,14,.3)"; ctx.stroke();
+  ctx.restore();
+  return true;
+}
+
+/* ---------- Hand finder (video mode) ---------- */
+let finder = null, onGPU = true, makeFinder = null;
+const finderReady = (async () => {
+  const { FilesetResolver, HandLandmarker } = await import(LIB_PATH);
+  const vision = await FilesetResolver.forVisionTasks(WASM_PATH);
+  makeFinder = (delegate) => HandLandmarker.createFromOptions(vision, {
+    baseOptions: { modelAssetPath: MODEL_PATH, delegate }, runningMode: "VIDEO", numHands: 2,
+  });
+  try { finder = await makeFinder("GPU"); } catch (e) { onGPU = false; finder = await makeFinder("CPU"); }
+})();
+finderReady.catch((e) => console.warn("Hand finder didn't load:", e));
+
+/* ---------- Camera ---------- */
+const video = $("cam"), view = $("view"), ctx = view.getContext("2d");
+let stream = null, facing = "environment", running = false, lastTime = -1, fps = 0, lastTick = 0, switching = false;
+
+function showStart(text, button) {
+  $("startText").textContent = text; $("startBtn").textContent = button || "Try again";
+  $("startOverlay").classList.remove("hidden");
+}
+async function startCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+    return showStart("This page can't reach the camera here. Open it from your GitHub Pages link in Chrome or Safari.");
+  $("startText").textContent = "Starting the camera…";
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+  } catch (e) {
+    console.warn("Camera failed:", e);
+    return showStart(e.name === "NotAllowedError" ? "The camera was blocked. Allow camera access for this page in your browser settings, then try again."
+                   : e.name === "NotFoundError" ? "No camera was found on this device."
+                   : "The camera couldn't start. Close other apps using it and try again. If you opened this page from a file or a preview, open it from your GitHub Pages link instead.");
+  }
+  video.srcObject = stream;
+  try { await video.play(); } catch (e) {}
+  const s = stream.getVideoTracks()[0].getSettings();
+  view.classList.toggle("mirrored", s.facingMode !== "environment"); // selfie cameras and webcams show like a mirror
+  $("startText").textContent = "Getting the hand finder ready…";
+  try { await finderReady; }
+  catch (e) { return showStart("The hand finder didn't load. This page needs the internet the first time it opens. Check your connection and try again."); }
+  $("startOverlay").classList.add("hidden");
+  $("fps").classList.remove("hidden");
+  if (!running) { running = true; requestAnimationFrame(loop); }
+}
+$("startBtn").addEventListener("click", startCamera);
+$("flipBtn").addEventListener("click", async () => {
+  if (switching) return; switching = true;
+  facing = facing === "environment" ? "user" : "environment";
+  await startCamera(); switching = false;
+});
+$("snapBtn").addEventListener("click", () => {
+  if (!running) return;
+  view.toBlob((blob) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "nail-try-on.png"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, "image/png");
+});
+
+$("trainBtn").addEventListener("click", () => {
+  if (!running || !video.videoWidth) return;
+  const c = document.createElement("canvas"); c.width = video.videoWidth; c.height = video.videoHeight;
+  c.getContext("2d").drawImage(video, 0, 0);
+  c.toBlob((blob) => {
+    const a = document.createElement("a"), d = new Date(), p = (x) => String(x).padStart(2, "0");
+    a.href = URL.createObjectURL(blob);
+    a.download = `nail-training-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`;
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    $("trainBtn").textContent = "Saved. Tap to save another";
+  }, "image/jpeg", 0.92);
+});
+
+function hint(text) { $("hint").textContent = text || ""; $("hint").classList.toggle("hidden", !text); }
+
+/* ---------- The live loop: every frame, find the hand and paint the nails ---------- */
+async function loop(now) {
+  if (!running) return;
+  if (video.readyState >= 2 && video.videoWidth && video.currentTime !== lastTime) {
+    lastTime = video.currentTime;
+    const W = video.videoWidth, H = video.videoHeight;
+    if (view.width !== W || view.height !== H) { view.width = W; view.height = H; }
+    ctx.drawImage(video, 0, 0, W, H);
+    let result = null;
+    try { result = finder.detectForVideo(video, now); }
+    catch (e) {
+      if (onGPU) { onGPU = false; try { finder.close(); } catch (x) {} finder = await makeFinder("CPU"); }
+      else console.warn("Scan failed:", e);
+    }
+    let hands = 0, painted = 0;
+    if (result && result.landmarks) {
+      hands = result.landmarks.length;
+      result.landmarks.forEach((lm, i) => {
+        const label = result.handedness[i] && result.handedness[i][0] ? result.handedness[i][0].categoryName : "Right";
+        const hand = smoothHand(label + (hands > 1 ? i : ""), lm, W, H, now);
+        for (const nail of nailsForHand(hand, label === "Right", now)) if (drawNail(ctx, nail)) painted++;
+      });
+    }
+    hint(!hands ? "Show the back of your hand to the camera" : !painted ? "Turn your hand so your nails face the camera" : "");
+    if (lastTick) fps = fps ? fps * 0.9 + (1000 / (now - lastTick)) * 0.1 : 1000 / (now - lastTick);
+    lastTick = now;
+    $("fps").textContent = Math.round(fps) + " frames a second";
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
