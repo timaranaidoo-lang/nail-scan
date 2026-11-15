@@ -3,59 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Live Nail Try-On (test)</title>
-<meta name="theme-color" content="#0f0d1a">
+<title>Live Try-On · Nail Care by Tee</title>
+<meta name="theme-color" content="#f6f1ff">
 <style>
   :root {
-    --bg: #0f0d1a; --card: #1a1729; --card2: #221e35; --line: #2c2742;
-    --ink: #f5f2ff; --quiet: #a59fc0; --pink: #ff5fa2; --pink-soft: rgba(255,95,162,.14);
-    --ok: #5fe0a8; --warn: #ffc65f;
+    --bg-top: #f6f1ff; --bg-bottom: #eefaf4; --card: #ffffff; --card2: #f4effd; --line: #e7e0f6;
+    --ink: #2a2440; --quiet: #655e80; --lilac: #7653d9; --lilac-dark: #5f3fc2; --lilac-soft: #ece5ff;
+    --mint: #c9f1e2; --ok: #1c7f60; --ok-soft: #dcf6ec; --warn: #d9a441; --warn-soft: #fff4dc; --bad: #c2415b; --bad-soft: #fde8ee;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  html { background: var(--bg-bottom); }
+  body { margin: 0; color: var(--ink); background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%); min-height: 100vh; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5;
     padding: max(14px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom));
   }
   main { max-width: 520px; margin: 0 auto; }
   .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-  .tag { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--pink); background: var(--pink-soft); padding: 4px 10px; border-radius: 999px; }
+  .tag { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--lilac); background: var(--lilac-soft); padding: 4px 10px; border-radius: 999px; }
   .top a { color: var(--quiet); font-size: 13px; }
-  h1 { font-size: 22px; margin: 0 0 10px; }
-  .stage { position: relative; background: #000; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); min-height: 220px; display: flex; align-items: center; justify-content: center; }
+  h1 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-size: 26px; font-weight: 600; margin: 0 0 10px; }
+  .stage { position: relative; background: var(--lilac-soft); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); min-height: 220px; display: flex; align-items: center; justify-content: center; }
   #view { display: block; max-width: 100%; max-height: 58vh; }
   #view.mirrored { transform: scaleX(-1); }
   video { display: none; }
-  .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; text-align: center; background: rgba(15,13,26,.92); }
+  .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; text-align: center; background: rgba(246,241,255,.96); }
   .overlay p { margin: 0; color: var(--quiet); font-size: 14px; max-width: 320px; }
-  .hint { position: absolute; left: 10px; right: 10px; bottom: 10px; text-align: center; font-size: 13px; background: rgba(15,13,26,.78); border-radius: 10px; padding: 6px 10px; }
-  .fps { position: absolute; top: 8px; left: 8px; font-size: 11px; color: var(--quiet); background: rgba(15,13,26,.7); border-radius: 8px; padding: 2px 7px; }
+  .hint { position: absolute; left: 10px; right: 10px; bottom: 10px; text-align: center; font-size: 13px; color: #fff; background: rgba(42,36,64,.82); border-radius: 10px; padding: 6px 10px; }
+  .fps { position: absolute; top: 8px; left: 8px; font-size: 11px; color: #fff; background: rgba(42,36,64,.7); border-radius: 8px; padding: 2px 7px; }
   .hidden { display: none !important; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border: 0; border-radius: 14px; background: var(--pink); color: #1a0a12; font-size: 16px; font-weight: 650; cursor: pointer; font-family: inherit; }
-  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border: 0; border-radius: 14px; background: var(--lilac); color: #fff; font-size: 16px; font-weight: 650; cursor: pointer; font-family: inherit; }
+  .btn.ghost { background: #fff; color: var(--lilac-dark); border: 1.5px solid var(--lilac); }
   .row { display: flex; gap: 10px; margin-top: 10px; }
   .row .btn { flex: 1; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-top: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px; margin-top: 12px; box-shadow: 0 12px 28px -20px rgba(95,63,194,.35); }
   .label { font-size: 13px; color: var(--quiet); margin: 0 0 8px; display: flex; justify-content: space-between; }
   .label + * { margin-bottom: 14px; }
   .card > :last-child { margin-bottom: 0; }
   .swatches { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; }
   .swatch { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--card); outline: 2px solid var(--line); cursor: pointer; padding: 0; }
-  .swatch.on { outline-color: var(--pink); outline-width: 3px; }
+  .swatch.on { outline-color: var(--lilac); outline-width: 3px; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; }
   .chip { min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--card2); color: var(--ink); border: 1.5px solid var(--line); font-size: 14px; cursor: pointer; font-family: inherit; }
-  .chip.on { border-color: var(--pink); background: var(--pink-soft); }
-  input[type=range] { width: 100%; accent-color: var(--pink); height: 32px; }
+  .chip.on { border-color: var(--lilac); background: var(--lilac-soft); }
+  input[type=range] { width: 100%; accent-color: var(--lilac); height: 32px; }
   details summary { cursor: pointer; font-size: 14px; color: var(--quiet); padding: 4px 0; }
   details[open] summary { margin-bottom: 10px; }
   .small { font-size: 13px; color: var(--quiet); margin: 12px 0 0; }
+  .swatch.any { position: relative; overflow: hidden; background: conic-gradient(#ff5f6d, #ffc371, #8fe3c5, #6fa8ff, #b9a2e8, #ff5fa2, #ff5f6d); }
+  .swatch.any input { position: absolute; inset: -8px; width: 70px; height: 70px; opacity: 0; cursor: pointer; }
+  .swatches.pens .swatch { width: 36px; height: 36px; }
+  .draw { display: flex; gap: 14px; align-items: flex-start; background: var(--card2); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
+  .draw .padbox { flex: none; width: 132px; text-align: center; }
+  #pad { display: block; width: 132px; height: auto; touch-action: none; border-radius: 12px; background: #fff; border: 1px dashed var(--line); cursor: crosshair; }
+  .draw .tools { flex: 1; min-width: 0; }
+  .draw .tools .label + * { margin-bottom: 10px; }
+  .draw .chip { min-height: 36px; padding: 0 11px; background: #fff; }
+  .draw .chip.on { background: var(--lilac-soft); }
+  .draw .row { margin-top: 0; gap: 8px; }
+  .draw .row .btn { min-height: 40px; font-size: 14px; padding: 0 8px; }
+  .padnote { font-size: 12px; color: var(--quiet); margin: 6px 0 0; }
 </style>
 </head>
 <body>
 <main>
   <div class="top">
     <span class="tag">Live try-on · test</span>
-    <a href="index.html">Photo scan test</a>
+    <a href="index.html">← Home</a>
   </div>
   <h1>Live Nail Try-On</h1>
 
@@ -70,14 +84,36 @@
     </div>
   </div>
 
-  <div class="row">
+  <div class="row" id="liveRow">
     <button class="btn ghost" type="button" id="flipBtn">Flip camera</button>
-    <button class="btn ghost" type="button" id="snapBtn">Save picture</button>
+    <button class="btn" type="button" id="captureBtn">Capture photo</button>
+  </div>
+  <div class="row hidden" id="photoRow">
+    <button class="btn ghost" type="button" id="retakeBtn">Retake</button>
+    <button class="btn" type="button" id="snapBtn">Save picture</button>
   </div>
 
   <section class="card">
-    <p class="label">Colour</p>
+    <p class="label">Nail colour</p>
     <div class="swatches" id="swatches"></div>
+    <p class="label">Design</p>
+    <div class="chips" id="designs"></div>
+    <div class="draw hidden" id="drawPanel">
+      <div class="padbox">
+        <canvas id="pad" width="360" height="560" aria-label="Draw your design on this nail"></canvas>
+        <p class="padnote">Draw here with your finger</p>
+      </div>
+      <div class="tools">
+        <p class="label">Drawing colour</p>
+        <div class="swatches pens" id="pens"></div>
+        <p class="label">Pen</p>
+        <div class="chips" id="penSizes"></div>
+        <div class="row">
+          <button class="btn ghost" type="button" id="undoBtn">Undo</button>
+          <button class="btn ghost" type="button" id="clearBtn">Clear</button>
+        </div>
+      </div>
+    </div>
     <p class="label">Shape</p>
     <div class="chips" id="shapes"></div>
     <p class="label"><span>Length</span><span id="lengthName">Medium</span></p>
@@ -99,7 +135,7 @@
     <p class="small" style="margin-top:8px">Saves the camera picture without the painted nails to this device. Only save photos of people who have said yes, and keep them private (never upload them to GitHub).</p>
   </section>
 
-  <p class="small">This is an early test. The nails are placed from the hand's tracked points, so they may sit a little off your real nails; use "Adjust the fit" to line them up. The camera picture stays on this device.</p>
+  <p class="small">This is an early test. The nails are placed from the hand's tracked points, so they may sit a little off your real nails; use "Adjust the fit" to line them up. Tap "Capture photo" to hold the picture still while you try different looks. The camera picture stays on this device.</p>
 </main>
 
 <script type="module">
@@ -109,46 +145,73 @@ const MODEL_PATH = "https://storage.googleapis.com/mediapipe-models/hand_landmar
 const $ = (id) => document.getElementById(id);
 
 /* ---------- What the customer can pick ---------- */
-const DESIGNS = [
-  { id: "red",    name: "Classic red", kind: "solid", colour: "#c1121f" },
-  { id: "pink",   name: "Hot pink",    kind: "solid", colour: "#ff5fa2" },
-  { id: "nude",   name: "Nude",        kind: "solid", colour: "#e3b7a0" },
-  { id: "navy",   name: "Midnight",    kind: "solid", colour: "#1d2a5c" },
-  { id: "green",  name: "Emerald",     kind: "solid", colour: "#0f7a5a" },
-  { id: "lilac",  name: "Lilac",       kind: "solid", colour: "#b9a2e8" },
-  { id: "black",  name: "Black",       kind: "solid", colour: "#15131c" },
-  { id: "milk",   name: "Milky white", kind: "solid", colour: "#f4eee8" },
-  { id: "french", name: "French tip",  kind: "french", colour: "#eec4b4", tip: "#fbf7f2" },
-  { id: "cateye", name: "Blue cat-eye", kind: "cateye", colour: "#16306e", light: "#a8cdf8" },
+const COLOURS = [
+  ["Lilac", "#b9a2e8"], ["Mint", "#8fe3c5"], ["Classic red", "#c1121f"], ["Hot pink", "#ff5fa2"], ["Nude", "#e3b7a0"],
+  ["Royal blue", "#16306e"], ["Emerald", "#0f7a5a"], ["Black", "#15131c"], ["Milky white", "#f4eee8"],
 ];
+const PENS = [["White", "#ffffff"], ["Gold", "#cfa14a"], ["Black", "#15131c"], ["Purple", "#7653d9"], ["Mint", "#8fe3c5"], ["Pink", "#ff5fa2"], ["Red", "#c1121f"]];
+const DESIGNS = ["Plain", "French tip", "Cat-eye", "Draw your own"];
 const SHAPES = ["Round", "Square", "Almond", "Coffin", "Stiletto"];
 const FINISHES = ["Glossy", "Matte"];
-const pick = { design: DESIGNS[1], shape: "Almond", finish: "Glossy", length: 1.9, size: 1, slide: 0 };
+const PEN_SIZES = { Fine: 0.07, Medium: 0.14, Bold: 0.26 }; // pen thickness as a share of the nail's width
+const pick = { colour: COLOURS[0][1], design: "Plain", shape: "Almond", finish: "Glossy", length: 1.9, size: 1, slide: 0, pen: PENS[0][1], penSize: "Medium" };
 
-DESIGNS.forEach((d) => {
-  const b = document.createElement("button");
-  b.type = "button"; b.className = "swatch" + (d === pick.design ? " on" : ""); b.title = d.name; b.setAttribute("aria-label", d.name);
-  b.style.background = d.kind === "french" ? `linear-gradient(180deg, ${d.tip} 0 32%, ${d.colour} 32%)`
-                     : d.kind === "cateye" ? `linear-gradient(110deg, ${d.colour} 25%, ${d.light} 50%, ${d.colour} 75%)` : d.colour;
-  b.addEventListener("click", () => { pick.design = d; [...$("swatches").children].forEach((x) => x.classList.toggle("on", x === b)); });
-  $("swatches").appendChild(b);
-});
+// The customer's own drawing: a list of pen strokes, kept on this device so it survives a refresh.
+// Each point is [across, along]: across runs -1 (left edge) to 1 (right edge), along runs 0 (cuticle) to 1 (tip).
+const DRAW_KEY = "nailcare-drawing-v1";
+let strokes = [];
+try { strokes = JSON.parse(localStorage.getItem(DRAW_KEY)) || []; } catch (e) {}
+function saveStrokes() { try { localStorage.setItem(DRAW_KEY, JSON.stringify(strokes)); } catch (e) {} }
+
+// Called whenever a choice changes: refresh the drawing pad and, if a photo is being held, repaint it
+function changed() { drawPad(); if (frozen) renderPhoto(); }
+
+function swatchRow(holder, list, key) {
+  const mark = (el) => [...holder.children].forEach((x) => x.classList.toggle("on", x === el));
+  list.forEach(([name, colour]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "swatch" + (pick[key] === colour ? " on" : ""); b.title = name; b.setAttribute("aria-label", name);
+    b.style.background = colour;
+    b.addEventListener("click", () => { pick[key] = colour; mark(b); changed(); });
+    holder.appendChild(b);
+  });
+  // any other colour, using the phone's own colour picker
+  const any = document.createElement("label"), input = document.createElement("input");
+  any.className = "swatch any"; any.title = "Any colour"; input.type = "color"; input.value = "#7653d9"; input.setAttribute("aria-label", "Pick any colour");
+  input.addEventListener("input", () => { pick[key] = input.value; mark(any); changed(); });
+  any.appendChild(input); holder.appendChild(any);
+}
 function chips(holder, names, key) {
   names.forEach((n) => {
     const b = document.createElement("button");
     b.type = "button"; b.className = "chip" + (pick[key] === n ? " on" : ""); b.textContent = n;
-    b.addEventListener("click", () => { pick[key] = n; [...holder.children].forEach((x) => x.classList.toggle("on", x === b)); });
+    b.addEventListener("click", () => {
+      pick[key] = n; [...holder.children].forEach((x) => x.classList.toggle("on", x === b));
+      if (key === "design") $("drawPanel").classList.toggle("hidden", n !== "Draw your own");
+      changed();
+    });
     holder.appendChild(b);
   });
 }
+swatchRow($("swatches"), COLOURS, "colour");
+swatchRow($("pens"), PENS, "pen");
+chips($("designs"), DESIGNS, "design");
+chips($("penSizes"), Object.keys(PEN_SIZES), "penSize");
 chips($("shapes"), SHAPES, "shape");
 chips($("finishes"), FINISHES, "finish");
 $("length").addEventListener("input", (e) => {
   pick.length = +e.target.value;
   $("lengthName").textContent = pick.length < 1.4 ? "Short" : pick.length < 2.1 ? "Medium" : pick.length < 2.8 ? "Long" : "Extra long";
+  changed();
 });
-$("size").addEventListener("input", (e) => { pick.size = +e.target.value; $("sizeVal").textContent = Math.round(pick.size * 100) + "%"; });
-$("slide").addEventListener("input", (e) => { pick.slide = +e.target.value; });
+$("size").addEventListener("input", (e) => { pick.size = +e.target.value; $("sizeVal").textContent = Math.round(pick.size * 100) + "%"; changed(); });
+$("slide").addEventListener("input", (e) => { pick.slide = +e.target.value; changed(); });
+
+// a lighter version of a colour, for the bright band in the cat-eye design
+function lighter(hex, amount) {
+  const n = parseInt(hex.slice(1), 16), mix = (c) => Math.round(c + (255 - c) * amount);
+  return `rgb(${mix(n >> 16)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+}
 
 /* ---------- Small 3D maths helpers ---------- */
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -210,8 +273,9 @@ function nailsForHand(hand, isRight, t) {
   // Screen pixels per hand unit. A bone looks shorter on screen when it tilts towards the camera,
   // so the bones that look longest for their usual length give the true size of the hand.
   const ratios = BONES.map(([a, b, usual]) => Math.hypot(P[a][0] - P[b][0], P[a][1] - P[b][1]) / usual).sort((p, q) => p - q);
-  const K = track.scale.next(ratios[Math.floor(ratios.length * 0.8)], t);
+  const K = hand.K || track.scale.next(ratios[Math.floor(ratios.length * 0.8)], t);
   if (!(K > 0)) return [];
+  hand.K0 = K;
   const knuckles = sub(P[5], P[17]);
   const v1 = sub(P[5], P[0]), v2 = sub(P[17], P[0]);
   const backN = norm(isRight ? cross(v2, v1) : cross(v1, v2)); // which way the back of the hand faces
@@ -273,11 +337,54 @@ function trace(ctx, pts) {
   ctx.closePath();
 }
 
+/* ---------- The drawing pad: draw once, and it goes on every nail ---------- */
+const pad = $("pad"), pctx = pad.getContext("2d");
+const PAD = { cx: 180, base: 543, W: 150, Ln: 525 }; // the big nail on the pad, in pad pixels
+function paintStrokes(c, place, width) { // draws the strokes using place([across, along]) -> [x, y]
+  c.lineCap = "round"; c.lineJoin = "round";
+  for (const st of strokes) {
+    const pts = st.pts.map(place), w = Math.max(1, PEN_SIZES[st.size] * width);
+    c.beginPath();
+    if (pts.length === 1) { c.arc(pts[0][0], pts[0][1], w / 2, 0, Math.PI * 2); c.fillStyle = st.colour; c.fill(); continue; }
+    pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]));
+    c.lineWidth = w; c.strokeStyle = st.colour; c.stroke();
+  }
+}
+function drawPad() {
+  pctx.clearRect(0, 0, pad.width, pad.height);
+  const pts = outline(PAD.W, PAD.Ln, pick.shape).map(([s, t]) => [PAD.cx + t, PAD.base - s]);
+  pctx.save();
+  trace(pctx, pts); pctx.fillStyle = pick.colour; pctx.fill();
+  trace(pctx, pts); pctx.clip();
+  paintStrokes(pctx, ([u, v]) => [PAD.cx + u * PAD.W, PAD.base - v * PAD.Ln], PAD.W);
+  pctx.restore();
+  trace(pctx, pts); pctx.lineWidth = 3; pctx.strokeStyle = "rgba(42,36,64,.35)"; pctx.stroke();
+}
+let penDown = null;
+function padPoint(e) {
+  const r = pad.getBoundingClientRect(), x = (e.clientX - r.left) * pad.width / r.width, y = (e.clientY - r.top) * pad.height / r.height;
+  return [(x - PAD.cx) / PAD.W, (PAD.base - y) / PAD.Ln];
+}
+pad.addEventListener("pointerdown", (e) => {
+  penDown = { colour: pick.pen, size: pick.penSize, pts: [padPoint(e)] };
+  strokes.push(penDown); pad.setPointerCapture(e.pointerId); e.preventDefault(); changed();
+});
+pad.addEventListener("pointermove", (e) => {
+  if (!penDown) return;
+  const p = padPoint(e), last = penDown.pts[penDown.pts.length - 1];
+  if (Math.hypot(p[0] - last[0], (p[1] - last[1]) * 3.5) < 0.02) return; // skip tiny moves
+  penDown.pts.push(p); e.preventDefault(); changed();
+});
+const penUp = () => { if (penDown) { penDown = null; saveStrokes(); } };
+pad.addEventListener("pointerup", penUp); pad.addEventListener("pointercancel", penUp);
+$("undoBtn").addEventListener("click", () => { strokes.pop(); saveStrokes(); changed(); });
+$("clearBtn").addEventListener("click", () => { strokes.length = 0; saveStrokes(); changed(); });
+
 /* ---------- Painting one nail ---------- */
 function drawNail(ctx, nail) {
   const alpha = clamp((nail.facing - 0.05) / 0.25, 0, 1); // fades out as the nail turns away from the camera
   if (alpha <= 0) return false;
-  const { map, W, Ln, n } = nail, d = pick.design, glossy = pick.finish === "Glossy";
+  const { map, W, Ln, n } = nail, glossy = pick.finish === "Glossy";
   const pts = outline(W, Ln, pick.shape).map(([s, t]) => map(s, t));
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
   const box = [Math.min(...xs) - 2, Math.min(...ys) - 2, Math.max(...xs) - Math.min(...xs) + 4, Math.max(...ys) - Math.min(...ys) + 4];
@@ -286,21 +393,22 @@ function drawNail(ctx, nail) {
 
   ctx.save();
   ctx.globalAlpha = alpha * 0.97;
-  trace(ctx, pts); ctx.fillStyle = d.colour; ctx.fill();
+  trace(ctx, pts); ctx.fillStyle = pick.colour; ctx.fill();
   ctx.save();
   trace(ctx, pts); ctx.clip();
-  if (d.kind === "french") {
+  if (pick.design === "French tip") {
     const tipD = Math.min(0.9 * W, Ln * 0.3), line = [];
     for (let i = 0; i <= 12; i++) { const t = -W * 1.2 + 2.4 * W * i / 12; line.push(map(Ln - tipD * (0.7 + 0.5 * (t / W) ** 2), t)); }
     line.push(map(Ln * 1.2, W * 1.2), map(Ln * 1.2, -W * 1.2));
-    trace(ctx, line); ctx.fillStyle = d.tip; ctx.fill();
+    trace(ctx, line); ctx.fillStyle = "#fbf7f2"; ctx.fill();
   }
-  if (d.kind === "cateye") {
-    const g = ctx.createLinearGradient(A[0], A[1], B[0], B[1]);
-    g.addColorStop(0, d.colour); g.addColorStop(clamp(shine - 0.22, 0.01, 0.98), d.colour);
-    g.addColorStop(shine, d.light); g.addColorStop(clamp(shine + 0.22, 0.02, 0.99), d.colour); g.addColorStop(1, d.colour);
+  if (pick.design === "Cat-eye") {
+    const g = ctx.createLinearGradient(A[0], A[1], B[0], B[1]), light = lighter(pick.colour, 0.62);
+    g.addColorStop(0, pick.colour); g.addColorStop(clamp(shine - 0.22, 0.01, 0.98), pick.colour);
+    g.addColorStop(shine, light); g.addColorStop(clamp(shine + 0.22, 0.02, 0.99), pick.colour); g.addColorStop(1, pick.colour);
     ctx.fillStyle = g; ctx.fillRect(...box);
   }
+  if (pick.design === "Draw your own") paintStrokes(ctx, ([u, v]) => map(v * Ln, u * W), W); // the customer's drawing, bent onto this nail
   // shading: darker at the curved sides, lighter where the light catches it
   const g = ctx.createLinearGradient(A[0], A[1], B[0], B[1]);
   g.addColorStop(0, "rgba(0,0,0,.34)"); g.addColorStop(clamp(shine - 0.3, 0.02, 0.9), "rgba(0,0,0,.06)");
@@ -370,33 +478,63 @@ $("flipBtn").addEventListener("click", async () => {
   facing = facing === "environment" ? "user" : "environment";
   await startCamera(); switching = false;
 });
-$("snapBtn").addEventListener("click", () => {
-  if (!running) return;
-  view.toBlob((blob) => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = "nail-try-on.png"; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  }, "image/png");
+/* ---------- Capture photo: hold the picture still and keep changing the look ---------- */
+let frozen = null, wantCapture = false;
+function paintHands(hands, t) {
+  let painted = 0;
+  for (const h of hands) for (const nail of nailsForHand(h, h.isRight, t)) if (drawNail(ctx, nail)) painted++;
+  return painted;
+}
+function renderPhoto() {
+  ctx.drawImage(frozen.frame, 0, 0);
+  const painted = paintHands(frozen.hands, 0);
+  hint(painted ? "" : "No nails found in this photo. Tap Retake and try again.");
+}
+function showPhotoMode(on) {
+  $("liveRow").classList.toggle("hidden", on); $("photoRow").classList.toggle("hidden", !on);
+  $("fps").classList.toggle("hidden", on);
+}
+$("captureBtn").addEventListener("click", () => { if (running && !frozen) wantCapture = true; });
+$("retakeBtn").addEventListener("click", async () => {
+  if (!frozen) return;
+  frozen = null; showPhotoMode(false); hint("");
+  try { await video.play(); } catch (e) {}
+  lastTick = 0; requestAnimationFrame(loop);
 });
-
+function download(canvas, name, type, quality) {
+  canvas.toBlob((blob) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, type, quality);
+}
+$("snapBtn").addEventListener("click", () => {
+  if (!frozen) return;
+  let out = view;
+  if (view.classList.contains("mirrored")) { // save it the way it looks on screen
+    out = document.createElement("canvas"); out.width = view.width; out.height = view.height;
+    const o = out.getContext("2d"); o.translate(out.width, 0); o.scale(-1, 1); o.drawImage(view, 0, 0);
+  }
+  download(out, "nail-try-on.png", "image/png");
+});
 $("trainBtn").addEventListener("click", () => {
-  if (!running || !video.videoWidth) return;
-  const c = document.createElement("canvas"); c.width = video.videoWidth; c.height = video.videoHeight;
-  c.getContext("2d").drawImage(video, 0, 0);
-  c.toBlob((blob) => {
-    const a = document.createElement("a"), d = new Date(), p = (x) => String(x).padStart(2, "0");
-    a.href = URL.createObjectURL(blob);
-    a.download = `nail-training-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`;
-    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    $("trainBtn").textContent = "Saved. Tap to save another";
-  }, "image/jpeg", 0.92);
+  if (!running) return;
+  let c = frozen && frozen.frame;
+  if (!c) {
+    if (!video.videoWidth) return;
+    c = document.createElement("canvas"); c.width = video.videoWidth; c.height = video.videoHeight;
+    c.getContext("2d").drawImage(video, 0, 0);
+  }
+  const d = new Date(), p = (x) => String(x).padStart(2, "0");
+  download(c, `nail-training-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`, "image/jpeg", 0.92);
+  $("trainBtn").textContent = "Saved. Tap to save another";
 });
 
 function hint(text) { $("hint").textContent = text || ""; $("hint").classList.toggle("hidden", !text); }
 
 /* ---------- The live loop: every frame, find the hand and paint the nails ---------- */
 async function loop(now) {
-  if (!running) return;
+  if (!running || frozen) return;
   if (video.readyState >= 2 && video.videoWidth && video.currentTime !== lastTime) {
     lastTime = video.currentTime;
     const W = video.videoWidth, H = video.videoHeight;
@@ -408,22 +546,35 @@ async function loop(now) {
       if (onGPU) { onGPU = false; try { finder.close(); } catch (x) {} finder = await makeFinder("CPU"); }
       else console.warn("Scan failed:", e);
     }
-    let hands = 0, painted = 0;
+    const hands = [];
     if (result && result.landmarks) {
-      hands = result.landmarks.length;
       result.landmarks.forEach((lm, i) => {
         const label = result.handedness[i] && result.handedness[i][0] ? result.handedness[i][0].categoryName : "Right";
-        const hand = smoothHand(label + (hands > 1 ? i : ""), lm, W, H, now);
-        for (const nail of nailsForHand(hand, label === "Right", now)) if (drawNail(ctx, nail)) painted++;
+        const hand = smoothHand(label + (result.landmarks.length > 1 ? i : ""), lm, W, H, now);
+        hand.isRight = label === "Right";
+        hands.push(hand);
       });
     }
-    hint(!hands ? "Show the back of your hand to the camera" : !painted ? "Turn your hand so your nails face the camera" : "");
+    let clean = null;
+    if (wantCapture) { // keep a copy of the picture before any nails are painted on it
+      clean = document.createElement("canvas"); clean.width = W; clean.height = H;
+      clean.getContext("2d").drawImage(view, 0, 0);
+    }
+    const painted = paintHands(hands, now);
+    if (wantCapture) {
+      wantCapture = false;
+      frozen = { frame: clean, hands: hands.map((h) => ({ P: h.P.map((p) => p.slice()), K: h.K0, isRight: h.isRight })) };
+      video.pause(); showPhotoMode(true); renderPhoto();
+      return;
+    }
+    hint(!hands.length ? "Show the back of your hand to the camera" : !painted ? "Turn your hand so your nails face the camera" : "");
     if (lastTick) fps = fps ? fps * 0.9 + (1000 / (now - lastTick)) * 0.1 : 1000 / (now - lastTick);
     lastTick = now;
     $("fps").textContent = Math.round(fps) + " frames a second";
   }
   requestAnimationFrame(loop);
 }
+drawPad();
 </script>
 </body>
 </html>
