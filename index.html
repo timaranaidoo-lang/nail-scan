@@ -3,904 +3,241 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nail Scan Prototype</title>
-<meta name="theme-color" content="#0f0d1a">
+<title>Nail Care by Tee</title>
+<meta name="description" content="Find your next set. Try nail colours and shapes on your own hands, live.">
+<meta name="theme-color" content="#f6f1ff">
 <style>
   :root {
-    --bg: #0f0d1a;
-    --card: #1a1729;
-    --card2: #221e35;
-    --line: #2c2742;
-    --ink: #f5f2ff;
-    --quiet: #a59fc0;
-    --pink: #ff5fa2;
-    --pink-soft: rgba(255, 95, 162, 0.14);
-    --ok: #5fe0a8;
-    --ok-soft: rgba(95, 224, 168, 0.12);
-    --warn: #ffc65f;
-    --warn-soft: rgba(255, 198, 95, 0.12);
+    --bg-top: #f6f1ff;      /* soft lilac */
+    --bg-bottom: #eefaf4;   /* soft mint */
+    --card: #ffffff;
+    --line: #e7e0f6;
+    --ink: #2a2440;
+    --quiet: #655e80;
+    --lilac: #7653d9;
+    --lilac-dark: #5f3fc2;
+    --lilac-soft: #ece5ff;
+    --mint: #c9f1e2;
+    --mint-deep: #1c7f60;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  html { background: var(--bg-bottom); }
   body {
+    margin: 0; color: var(--ink); line-height: 1.5;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.5;
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
     min-height: 100vh;
-    padding: max(20px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+    padding: max(28px, env(safe-area-inset-top)) 18px max(32px, env(safe-area-inset-bottom));
   }
-  main { max-width: 460px; margin: 0 auto; }
-  .tag {
-    display: inline-block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
-    color: var(--pink); background: var(--pink-soft); padding: 4px 10px; border-radius: 999px;
-  }
-  h1 { font-size: 26px; line-height: 1.2; margin: 12px 0 4px; }
-  h2 { font-size: 17px; margin: 0 0 4px; }
-  p { margin: 0 0 10px; }
-  .quiet { color: var(--quiet); }
-  .small { font-size: 13px; }
-  .status { font-size: 13px; color: var(--quiet); margin: 0 0 18px; display: flex; align-items: center; gap: 8px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
-  .dot.ready { background: var(--ok); }
-  .dot.bad { background: var(--pink); }
+  main { max-width: 440px; margin: 0 auto; }
 
-  .card {
+  header { text-align: center; margin-bottom: 20px; }
+  h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 34px; line-height: 1.15; font-weight: 600; margin: 0; letter-spacing: -.01em;
+  }
+  h1 em { font-style: italic; color: var(--lilac); }
+  .tagline { margin: 6px 0 0; font-size: 17px; color: var(--quiet); }
+
+  /* The main attraction: picture card with the live camera button */
+  .hero {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--card); border: 1px solid var(--line); border-radius: 28px; overflow: hidden;
+    box-shadow: 0 18px 40px -18px rgba(95, 63, 194, .35);
+  }
+  .hero svg { display: block; width: 100%; height: auto; }
+  /* gentle motion: the hand floats, a glint travels across the nails, sparkles twinkle */
+  .hand { transform-origin: 50% 92%; animation: float 6s ease-in-out infinite; }
+  .glint { opacity: .3; animation: glint 4.5s ease-in-out infinite; }
+  .g1 { animation-delay: .22s; } .g2 { animation-delay: .44s; } .g3 { animation-delay: .66s; } .g4 { animation-delay: .88s; }
+  .twinkle { transform-box: fill-box; transform-origin: center; animation: twinkle 3.2s ease-in-out infinite; }
+  .t1 { animation-delay: .8s; } .t2 { animation-delay: 1.6s; } .t3 { animation-delay: 2.3s; }
+  @keyframes float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(-1.2deg); } }
+  @keyframes glint { 0%, 30%, 100% { opacity: .3; } 12% { opacity: 1; } }
+  @keyframes twinkle { 0%, 100% { transform: scale(1); opacity: .95; } 50% { transform: scale(.45); opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .hand, .glint, .twinkle { animation: none; } }
+  .hero-body { padding: 16px; }
+  .cta {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    min-height: 72px; border-radius: 20px; padding: 0 20px;
+    background: var(--lilac); color: #fff; font-size: 21px; font-weight: 650;
+    box-shadow: 0 10px 22px -10px rgba(95, 63, 194, .8);
+  }
+  .cta svg { width: 38px; height: 38px; flex: none; }
+  .hero:active .cta { background: var(--lilac-dark); transform: scale(.985); }
+  .hero-note { margin: 10px 0 0; text-align: center; font-size: 13px; color: var(--quiet); }
+
+  /* Icon guide */
+  .guide { margin-top: 34px; }
+  h2 { font-size: 16px; margin: 0 0 12px; text-align: center; font-weight: 650; }
+  .tips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; list-style: none; margin: 0; padding: 0; }
+  .tips li {
     background: var(--card); border: 1px solid var(--line); border-radius: 18px;
-    padding: 16px; margin-bottom: 14px;
+    padding: 14px 10px 12px; text-align: center; font-size: 14px; line-height: 1.3;
   }
-  .hidden { display: none !important; }
-
-  .example {
-    background: var(--card2); border: 1px solid var(--line); border-radius: 14px;
-    padding: 10px 10px 8px; margin: 12px 0; text-align: center; font-size: 13px; color: var(--quiet);
+  .ico {
+    width: 52px; height: 52px; border-radius: 50%; background: var(--mint); color: var(--mint-deep);
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;
   }
-  .example svg { display: block; width: 100%; max-width: 300px; height: auto; margin: 0 auto 4px; }
+  .tips li:nth-child(2) .ico, .tips li:nth-child(3) .ico { background: var(--lilac-soft); color: var(--lilac-dark); }
+  .ico svg { width: 30px; height: 30px; }
 
-  ol.tips { margin: 0 0 14px; padding-left: 20px; }
-  ol.tips li { margin-bottom: 4px; }
-
-  .btn {
-    display: flex; align-items: center; justify-content: center;
-    width: 100%; min-height: 54px; border: 0; border-radius: 14px;
-    background: var(--pink); color: #1a0a12; font-size: 17px; font-weight: 650;
-    cursor: pointer; text-align: center; padding: 0 12px;
+  .btn2 {
+    display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px;
+    min-height: 56px; border-radius: 16px; text-decoration: none;
+    background: var(--card); color: var(--lilac-dark); border: 2px solid var(--lilac);
+    font-size: 17px; font-weight: 650;
   }
-  .btn:active { transform: scale(.98); }
-  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
-  .row { display: flex; gap: 10px; }
-  .row .btn { flex: 1; }
-  input[type=file] { display: none; }
+  .btn2 svg { width: 24px; height: 24px; }
+  .btn2:active { background: var(--lilac-soft); }
 
-  .result canvas { display: block; width: 100%; height: auto; border-radius: 12px; background: #000; margin-bottom: 12px; }
-  .verdict { border-radius: 12px; padding: 12px; margin-bottom: 10px; }
-  .verdict.good { background: var(--ok-soft); }
-  .verdict.problem { background: var(--pink-soft); }
-  .verdict.working { background: var(--card2); }
-  .verdict strong { display: block; font-size: 16px; margin-bottom: 2px; }
-  .verdict.good strong { color: var(--ok); }
-  .verdict.problem strong { color: var(--pink); }
-  .facts { font-size: 13px; color: var(--quiet); margin-bottom: 10px; }
-  ul.soft { margin: 0 0 12px; padding: 10px 12px 10px 30px; background: var(--warn-soft); border-radius: 12px; font-size: 14px; }
-  ul.soft li { margin-bottom: 2px; }
-  .ask { font-weight: 600; margin: 4px 0 10px; }
-  .howto { background: var(--card2); border-radius: 12px; padding: 12px; font-size: 14px; color: var(--quiet); margin-bottom: 12px; }
-  .howto strong { display: block; color: var(--ink); font-size: 15px; margin-bottom: 2px; }
-  .howto .linkbtn { display: block; margin-top: 6px; }
-  .pinkdot, .whitedot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 2px solid #1a0a12; vertical-align: -1px; }
-  .pinkdot { background: var(--pink); } .whitedot { background: #fff; }
-  #view { touch-action: none; }
-
-  table.log { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 12px; }
-  table.log th, table.log td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
-  table.log th { color: var(--quiet); font-weight: 500; }
-  .y { color: var(--ok); } .n { color: var(--pink); }
-  .score { font-size: 15px; }
-  .linkbtn { background: none; border: 0; color: var(--quiet); text-decoration: underline; font-size: 13px; padding: 0; cursor: pointer; font-family: inherit; }
-  footer { text-align: center; font-size: 12px; color: var(--quiet); margin-top: 20px; }
+  footer { text-align: center; margin-top: 28px; font-size: 14px; }
+  footer a { color: var(--quiet); }
+  a:focus-visible { outline: 3px solid var(--lilac); outline-offset: 3px; border-radius: 20px; }
 </style>
 </head>
 <body>
 <main>
-  <span class="tag">Stage 2 · Find the nails</span>
-  <h1>Nail Scan Prototype</h1>
-  <p style="margin:0 0 8px"><a href="live.html" style="color:var(--pink);font-size:14px">Try the live camera test →</a></p>
-  <p class="status"><span class="dot" id="statusDot"></span><span id="statusText">Getting the hand finder ready…</span></p>
+  <header>
+    <h1>Nail Care <em>by Tee</em></h1>
+    <p class="tagline">Find your next set.</p>
+  </header>
 
-  <!-- GUIDE -->
-  <section class="card" id="guide">
-    <h2>Photo of one hand</h2>
-    <p class="quiet small">Left or right, it works out which by itself.</p>
-    <div class="example">
-      <svg viewBox="0 0 170 120" id="poseSvg" role="img" aria-label="A hand lying flat with the back of the hand up, fingers straight and slightly spread, all five nails showing"></svg>
-      Hand flat, back of the hand up, fingers slightly spread
-    </div>
-    <ol class="tips">
-      <li>Rest your hand flat on a table or your lap and hold the phone above it with your other hand.</li>
-      <li>Spread your fingers a little so all five nails, thumb included, show, with space past your nail tips.</li>
-      <li>Use bright, even light and a plain background that's a different colour from your nails.</li>
-    </ol>
-    <label class="btn" for="photo">Take photo or choose from gallery</label>
-  </section>
+  <a class="hero" href="live.html" aria-label="Try nails on live with your camera">
+    <svg viewBox="0 0 320 320" role="img" aria-label="A hand with pastel lilac, mint and cream almond nails with gold details">
+      <defs>
+        <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fdfbff"/><stop offset="1" stop-color="#f1ebf8"/></linearGradient>
+        <linearGradient id="silkL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ebe1fc"/><stop offset="1" stop-color="#d2c0f4"/></linearGradient>
+        <linearGradient id="silkM" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e2f7ee"/><stop offset="1" stop-color="#c6ecdc"/></linearGradient>
+        <linearGradient id="marbleNail" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cfb8f3"/><stop offset=".5" stop-color="#eee6fb"/><stop offset="1" stop-color="#bfe9d7"/></linearGradient>
+        <radialGradient id="sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe6bf" stop-opacity=".95"/><stop offset="1" stop-color="#ffe6bf" stop-opacity="0"/></radialGradient>
+        <g id="skin">
+          <rect x="118.2" y="134" width="17.5" height="96" rx="8.8" transform="rotate(-6 127 208)"/>
+          <rect x="136" y="94" width="20" height="132" rx="10" transform="rotate(-2 146 204)"/>
+          <rect x="156.5" y="78" width="21" height="146" rx="10.5" transform="rotate(0.5 167 202)"/>
+          <rect x="178" y="96" width="20" height="130" rx="10" transform="rotate(3.5 188 204)"/>
+          <rect x="202.5" y="170" width="23" height="86" rx="11.5" transform="rotate(21 214 248)"/>
+          <ellipse cx="208" cy="252" rx="15" ry="30" transform="rotate(18 208 252)"/>
+          <path d="M119 226 C117 214 120 205 126 200 L188 199 C194 203 198 210 198 217 C206 230 220 242 220 258 C220 274 207 283 201 295 L201 326 L134 326 L133 295 C126 281 117 266 117 244 Z"/>
+        </g>
+      </defs>
 
-  <input id="photo" type="file" accept="image/*">
+      <!-- marble, soft light and silk -->
+      <rect width="320" height="320" fill="url(#wall)"/>
+      <g fill="none" stroke="#cdc6d8" stroke-linecap="round" opacity=".7">
+        <path d="M24 -4 C70 40 60 96 118 128 C150 146 150 176 190 196" stroke-width="1.4"/>
+        <path d="M150 -6 C170 40 224 52 246 110" stroke-width="1.2"/>
+        <path d="M70 46 C92 52 100 70 96 92 M206 48 C224 70 222 92 240 104 M44 110 C60 118 66 136 84 140" stroke-width=".9"/>
+      </g>
+      <circle cx="286" cy="34" r="120" fill="url(#sun)"/>
+      <path d="M0 128 C30 150 58 196 52 252 C48 290 60 310 72 320 L0 320Z" fill="url(#silkL)"/>
+      <path d="M0 160 C20 186 34 232 28 320 M0 204 C10 236 12 280 8 320" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+      <path d="M320 92 C288 128 262 190 268 252 C272 290 262 310 254 320 L320 320Z" fill="url(#silkL)" opacity=".9"/>
+      <path d="M320 140 C300 180 288 250 296 320 M320 210 C312 250 312 290 316 320" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+      <path d="M0 266 C52 254 104 290 118 320 L0 320Z" fill="url(#silkM)"/>
+      <path d="M0 286 C36 282 70 300 84 320" fill="none" stroke="#fff" stroke-width="3.500" stroke-linecap="round" opacity=".6"/>
+      <path d="M320 270 C286 274 250 300 242 320 L320 320Z" fill="url(#silkM)"/>
+      <g fill="#fff">
+        <path class="twinkle t0" d="M56 75 Q56 88 69 88 Q56 88 56 101 Q56 88 43 88 Q56 88 56 75Z"/><path class="twinkle t1" d="M266 144 Q266 154 276 154 Q266 154 266 164 Q266 154 256 154 Q266 154 266 144Z"/><path class="twinkle t2" d="M96 32 Q96 38 102 38 Q96 38 96 44 Q96 38 90 38 Q96 38 96 32Z"/><path class="twinkle t3" d="M250 57 Q250 64 257 64 Q250 64 250 71 Q250 64 243 64 Q250 64 250 57Z"/>
+      </g>
 
-  <!-- RESULT -->
-  <section class="card result hidden" id="resultCard">
-    <canvas id="view"></canvas>
-    <div class="verdict working" id="verdict"><strong id="verdictTitle">Scanning…</strong><span id="verdictText"></span></div>
-    <div class="facts"><span id="facts"></span> <button class="linkbtn hidden" type="button" id="switchBtn">Wrong hand?</button></div>
-    <ul class="soft hidden" id="softTips"></ul>
-    <div id="judge" class="hidden">
-      <div class="howto">
-        <strong>Fix any nail that's wrong</strong>
-        Tap it, then drag it to move it. Drag the <span class="pinkdot"></span> pink dot to make it longer, shorter or turn it, and the <span class="whitedot"></span> white dot to make it wider or narrower.
-        <button class="linkbtn" type="button" id="undoBtn">Undo my fixes</button>
+      <!-- the hand -->
+      <g class="hand">
+        <use href="#skin" fill="#b98363" stroke="#8a5a40" stroke-width="2.600" stroke-linejoin="round"/>
+        <use href="#skin" fill="#b98363"/>
+        <g fill="none" stroke="#8a5a40" stroke-width="1" stroke-linecap="round" opacity=".32">
+          <path d="M122.5 162.1 q4.5 2.4 9 0" transform="rotate(-6 127 208)"/>
+          <path d="M122.5 184.3 q4.5 2.4 9 0" transform="rotate(-6 127 208)"/>
+          <path d="M141.5 135.8 q4.5 2.4 9 0" transform="rotate(-2 146 204)"/>
+          <path d="M141.5 168.8 q4.5 2.4 9 0" transform="rotate(-2 146 204)"/>
+          <path d="M162.5 125.1 q4.5 2.4 9 0" transform="rotate(0.5 167 202)"/>
+          <path d="M162.5 162.3 q4.5 2.4 9 0" transform="rotate(0.5 167 202)"/>
+          <path d="M183.5 137 q4.5 2.4 9 0" transform="rotate(3.5 188 204)"/>
+          <path d="M183.5 169.4 q4.5 2.4 9 0" transform="rotate(3.5 188 204)"/>
+          <path d="M209.5 210.6 q4.5 2.4 9 0" transform="rotate(21 214 248)"/>
+          <path d="M127 220 q3.500 4.500 0 10 M146 216 q3.500 4.500 0 10 M167 215 q3.500 4.500 0 10 M187 217 q3.500 4.500 0 10"/>
+        </g>
+        <g transform="rotate(-6 127 208)">
+          <path d="M120.2 148 L120.2 134 C120.2 122 124.3 114 127 114 C129.7 114 133.8 122 133.8 134 L133.8 148 Q127 154 120.2 148Z" fill="#cdb5f2" stroke="#a892c9" stroke-width=".9"/>
+          <path d="M121.2 141 Q127 136 132.8 141" stroke="#cfa14a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path class="glint g0" d="M123.6 143 L123.6 127" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(-2 146 204)">
+          <path d="M138 108 L138 94 C138 82 142.8 74 146 74 C149.2 74 154 82 154 94 L154 108 Q146 114 138 108Z" fill="#fbf4e8" stroke="#a892c9" stroke-width=".9"/>
+          <g fill="#c3a6ee"><circle cx="145.9" cy="89" r="1.9"/><circle cx="144.2" cy="91.3" r="1.9"/><circle cx="141.6" cy="90.4" r="1.9"/><circle cx="141.6" cy="87.6" r="1.9"/><circle cx="144.2" cy="86.7" r="1.9"/></g><circle cx="143.5" cy="89" r="1" fill="#cfa14a"/><g fill="#c3a6ee"><circle cx="150.9" cy="100" r="1.5"/><circle cx="149.6" cy="101.8" r="1.5"/><circle cx="147.5" cy="101.1" r="1.5"/><circle cx="147.5" cy="98.9" r="1.5"/><circle cx="149.6" cy="98.2" r="1.5"/></g><circle cx="149" cy="100" r="1" fill="#cfa14a"/>
+          <path class="glint g1" d="M142 103 L142 87" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(0.5 167 202)">
+          <path d="M158.5 92 L158.5 78 C158.5 66 163.6 58 167 58 C170.4 58 175.5 66 175.5 78 L175.5 92 Q167 98 158.5 92Z" fill="url(#marbleNail)" stroke="#a892c9" stroke-width=".9"/>
+          <path d="M168 67 q-3 4 0 7 q3 3 -1 7 q-2 3 1 6" stroke="#cfa14a" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="171" cy="78" r="1" fill="#cfa14a"/>
+          <path class="glint g2" d="M162.8 87 L162.8 71" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(3.5 188 204)">
+          <path d="M180 110 L180 96 C180 84 184.8 76 188 76 C191.2 76 196 84 196 96 L196 110 Q188 116 180 110Z" fill="#bfe9d7" stroke="#a892c9" stroke-width=".9"/>
+          <path d="M181 92 Q188 86 195 92" stroke="#cfa14a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path class="glint g3" d="M184 105 L184 89" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(21 214 248)">
+          <path d="M204.5 184 L204.5 170 C204.5 158 210.2 150 214 150 C217.8 150 223.5 158 223.5 170 L223.5 184 Q214 190 204.5 184Z" fill="#fbf4e8" stroke="#a892c9" stroke-width=".9"/>
+          <path d="M210.5 178 q2 -10 6.500 -16" stroke="#c9b0f0" stroke-width="4" fill="none" stroke-linecap="round" opacity=".9"/><path d="M216 173 l2 -3 M213 176 l1.500 -2" stroke="#cfa14a" stroke-width="1.3" stroke-linecap="round"/>
+          <path class="glint g4" d="M209.2 179 L209.2 163" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </g>
+        <!-- bracelet -->
+        <path d="M133 300 Q167 309 201 300" fill="none" stroke="#cfa14a" stroke-width="2.400" stroke-linecap="round" stroke-dasharray=".5 3.600"/>
+        <path d="M133 300 Q167 309 201 300" fill="none" stroke="#e6c477" stroke-width=".8"/>
+      </g>
+    </svg>
+    <div class="hero-body">
+      <div class="cta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 8.5A2.5 2.5 0 0 1 5.500 6h1.700l1.300-2h7l1.300 2h1.700A2.500 2.500 0 0 1 21 8.500v9A2.500 2.500 0 0 1 18.500 20h-13A2.500 2.500 0 0 1 3 17.500z"/>
+          <circle cx="12" cy="13" r="3.800"/>
+        </svg>
+        Try nails on live
       </div>
-      <p class="ask">Before your fixes, how well did the outlines fit?</p>
-      <div class="row">
-        <button class="btn ghost" type="button" data-fit="good">Good</button>
-        <button class="btn ghost" type="button" data-fit="okay">Okay</button>
-        <button class="btn ghost" type="button" data-fit="off">Off</button>
-      </div>
+      <p class="hero-note">Opens your camera. Your picture stays on your phone.</p>
     </div>
-    <div id="retry" class="hidden">
-      <label class="btn" for="photo">Retake photo</label>
-    </div>
-    <div id="again" class="hidden">
-      <p class="quiet small">Saved to your test log. Try different light, nail styles and people.</p>
-      <label class="btn" for="photo">Scan another hand</label>
-    </div>
+  </a>
+
+  <section class="guide" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">For the best fit</h2>
+    <ul class="tips">
+      <li>
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8 12V5.500a1.500 1.500 0 0 1 3 0V11m0-5.500V4a1.500 1.500 0 0 1 3 0v7m0-5.500a1.500 1.500 0 0 1 3 0V13m0-4a1.500 1.500 0 0 1 3 0v5a7 7 0 0 1-7 7h-1a6 6 0 0 1-4.700-2.300L4.300 14.900a1.500 1.500 0 0 1 2.300-1.900L8 14.500"/>
+        </svg></div>
+        Back of your hand facing up
+      </li>
+      <li>
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8.500 20.500 5.500 4M15.500 20.500l3-16.500"/><path d="M10.800 8 9 10l1.800 2M13.200 8 15 10l-1.800 2"/>
+        </svg></div>
+        Fingers slightly apart
+      </li>
+      <li>
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2.500v2M12 19.500v2M2.500 12h2M19.500 12h2M5.300 5.300l1.400 1.400M17.300 17.300l1.400 1.400M5.300 18.700l1.400-1.400M17.300 6.700l1.400-1.400"/>
+        </svg></div>
+        Bright, even light
+      </li>
+      <li>
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3.500 8V5.500a2 2 0 0 1 2-2H8M16 3.500h2.500a2 2 0 0 1 2 2V8M20.500 16v2.500a2 2 0 0 1-2 2H16M8 20.500H5.500a2 2 0 0 1-2-2V16"/>
+          <g fill="currentColor" stroke="none"><circle cx="8" cy="11" r="1.200"/><circle cx="10.700" cy="9" r="1.200"/><circle cx="13.500" cy="9" r="1.200"/><circle cx="16.200" cy="10.800" r="1.200"/><circle cx="7.500" cy="15" r="1.200"/></g>
+        </svg></div>
+        All five nails in view
+      </li>
+    </ul>
+    <a class="btn2" href="live.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 8.500A2.500 2.500 0 0 1 5.500 6h1.700l1.300-2h7l1.300 2h1.700A2.500 2.500 0 0 1 21 8.500v9A2.500 2.500 0 0 1 18.500 20h-13A2.500 2.500 0 0 1 3 17.500z"/>
+        <circle cx="12" cy="13" r="3.800"/>
+      </svg>
+      Take a photo
+    </a>
   </section>
 
-  <!-- TEST LOG -->
-  <section class="card">
-    <h2>Your test log</h2>
-    <p class="score" id="score">No scans yet.</p>
-    <table class="log hidden" id="logTable">
-      <thead><tr><th>#</th><th>Hand</th><th>Fit</th><th>Fixed</th><th>Scan</th></tr></thead>
-      <tbody id="logBody"></tbody>
-    </table>
-    <button class="linkbtn hidden" type="button" id="clearBtn">Clear log</button>
-    <p class="quiet small" style="margin-top:8px">The Stage 2 goal: 10 scans where the outlines fit Good or Okay, each under 3 seconds, and any wrong nail fixed in under 20 seconds. Photos stay on this phone; only these results are kept, and only on this phone.</p>
-  </section>
-
-  <footer>Nail try-on app · hand scan prototype</footer>
+  <footer><a href="scan.html">Scan a photo instead</a></footer>
 </main>
-
-<script>
-/* ---------- Pose drawing: a hand lying flat, back up, fingers pointing right ---------- */
-(function drawPose() {
-  var skin = "#a8714f", line = "#6e4429", nail = "#ff5fa2";
-  // one finger: a rounded bar from the knuckles out to the right, with an almond nail on the end
-  function finger(y, len, h, angle) {
-    var x0 = 52, end = x0 + len, mid = y + h / 2;
-    var nailStart = end - 13, tip = end + 9;
-    return '<g transform="rotate(' + angle + ' ' + x0 + ' ' + mid + ')">' +
-      '<rect x="' + (x0 - 10) + '" y="' + y + '" width="' + (len + 10) + '" height="' + h + '" rx="' + (h / 2) + '" fill="' + skin + '" stroke="' + line + '" stroke-width="1.2"/>' +
-      '<path d="M' + nailStart + ' ' + (y + 2) + ' Q' + (tip - 3) + ' ' + (y + 2) + ' ' + tip + ' ' + mid +
-      ' Q' + (tip - 3) + ' ' + (y + h - 2) + ' ' + nailStart + ' ' + (y + h - 2) + ' Q' + (nailStart - 3) + ' ' + mid + ' ' + nailStart + ' ' + (y + 2) + 'Z" fill="' + nail + '"/>' +
-      '</g>';
-  }
-  var svg =
-    // thumb, angled down and out under the hand
-    '<g transform="rotate(14 40 92)">' +
-      '<rect x="22" y="86" width="72" height="15" rx="7.5" fill="' + skin + '" stroke="' + line + '" stroke-width="1.2"/>' +
-      '<path d="M80 88 Q100 88 104 93.5 Q100 99 80 99 Q77 93.5 80 88Z" fill="' + nail + '"/>' +
-    '</g>' +
-    finger(18, 62, 11, -9) +   // little finger
-    finger(33, 84, 13, -3) +   // ring
-    finger(49, 92, 13, 2) +    // middle
-    finger(65, 80, 13, 8) +    // index
-    // back of the hand, running off the left edge like a real photo
-    '<path d="M-6 24 C14 16 40 14 54 20 C66 32 66 70 58 84 C40 96 14 98 -6 92 Z" fill="' + skin + '" stroke="' + line + '" stroke-width="1.2"/>' +
-    '<path d="M30 36 Q36 46 32 58 M38 42 Q42 54 38 66" stroke="' + line + '" stroke-width="1" fill="none" opacity=".35"/>';
-  document.getElementById("poseSvg").innerHTML = svg;
-})();
-</script>
-
-<script type="module">
-const LIB_PATH   = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/vision_bundle.mjs";
-const WASM_PATH  = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm";
-const MODEL_PATH = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
-const MAX_SIDE = 1024;      // photos are shrunk to this size before scanning
-const TARGET_SECONDS = 3;   // speed goal for one scan
-const LOG_KEY = "nailscan-log-v3";
-
-// Lines that join the 21 dots, so the hand map is easy to read
-const LINKS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],
-               [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-const FINGERS = [[5,6,8],[9,10,12],[13,14,16],[17,18,20]]; // knuckle, middle joint, tip
-const NAILS = [[3,4],[7,8],[11,12],[15,16],[19,20]];        // last joint and tip of each finger, thumb first
-
-const $ = (id) => document.getElementById(id);
-const state = { last: null, log: loadLog() };
-
-/* ---------- Hand finder setup ---------- */
-let FilesetResolver, HandLandmarker;   // the hand finder's building blocks, downloaded below
-let vision = null, finder = null, onGPU = true;
-async function makeFinder(delegate) {
-  return HandLandmarker.createFromOptions(vision, {
-    baseOptions: { modelAssetPath: MODEL_PATH, delegate },
-    runningMode: "IMAGE",
-    numHands: 2,
-  });
-}
-const finderReady = (async () => {
-  ({ FilesetResolver, HandLandmarker } = await import(LIB_PATH));
-  vision = await FilesetResolver.forVisionTasks(WASM_PATH);
-  try { finder = await makeFinder("GPU"); }
-  catch (e) { onGPU = false; finder = await makeFinder("CPU"); }
-  // Warm-up run so the first real scan isn't slowed down by start-up work
-  const warm = document.createElement("canvas"); warm.width = warm.height = 64;
-  warm.getContext("2d").fillRect(0, 0, 64, 64);
-  try { finder.detect(warm); } catch (e) { await switchToCPU(); finder.detect(warm); }
-})();
-finderReady.then(
-  () => setStatus("ready", "Hand finder ready. Everything runs on this phone."),
-  (e) => { console.warn("Hand finder didn't load:", e); setStatus("bad", "The hand finder didn't load. Open this page from your GitHub Pages link with internet on, then refresh."); }
-);
-async function switchToCPU() {
-  if (!onGPU) return;
-  onGPU = false;
-  try { finder.close(); } catch (e) {}
-  finder = await makeFinder("CPU");
-}
-async function findHands(canvas) {
-  try { return finder.detect(canvas); }
-  catch (e) { if (!onGPU) throw e; await switchToCPU(); return finder.detect(canvas); }
-}
-function setStatus(kind, text) {
-  $("statusDot").className = "dot" + (kind === "ready" ? " ready" : kind === "bad" ? " bad" : "");
-  $("statusText").textContent = text;
-}
-
-/* ---------- Buttons ---------- */
-$("photo").addEventListener("change", (e) => {
-  const file = e.target.files && e.target.files[0];
-  e.target.value = ""; // lets the same photo be picked again
-  if (file) handlePhoto(file);
-});
-document.querySelectorAll("[data-fit]").forEach((b) => b.addEventListener("click", () => judged(b.dataset.fit)));
-$("switchBtn").addEventListener("click", () => {
-  const v = state.last; if (!v) return;
-  v.hand = v.hand === "left" ? "right" : "left";
-  $("facts").textContent = factsLine(v);
-});
-$("clearBtn").addEventListener("click", () => { state.log = []; saveLog(); renderLog(); });
-
-/* ---------- One photo, start to finish ---------- */
-async function handlePhoto(file) {
-  showWorking();
-  const started = performance.now();
-
-  // 1. Open the photo
-  let img;
-  try { img = await openImage(file); }
-  catch (e) {
-    console.warn("Photo could not be opened:", file.type || file.name);
-    const heic = /hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
-    return heic
-      ? showProblem(null, "This photo's format can't be opened here", "It's an iPhone HEIC photo. Tap the button and take a new photo instead, or open this page in Safari on the iPhone.")
-      : showProblem(null, "We couldn't open that photo", "Try taking a new photo, or pick a different one from your gallery.");
-  }
-  const canvas = shrink(img);
-  const quality = checkQuality(canvas);
-
-  // 2. Make sure the hand finder loaded (waiting for the download doesn't count towards the scan time)
-  const waitStart = performance.now();
-  $("verdictTitle").textContent = "Getting the hand finder ready…";
-  try { await finderReady; }
-  catch (e) {
-    return showProblem(null, "The hand finder didn't load", "This page needs the internet the first time it opens. Open it from your GitHub Pages link, check your connection, then refresh. On work or university Wi-Fi, try mobile data.");
-  }
-
-  const waited = performance.now() - waitStart;
-  $("verdictTitle").textContent = "Scanning…";
-
-  // 3. Scan
-  let result;
-  try { result = await findHands(canvas); }
-  catch (e) {
-    console.warn("Scan failed:", e);
-    return showProblem(null, "The scan didn't work on this photo", "Refresh the page and try again. If it keeps happening, note which phone and browser you're using.");
-  }
-  const v = judge(result, quality);
-  if (v.ok) v.nails = findAllNails(canvas, v.lm);
-  v.seconds = (performance.now() - started - waited) / 1000;
-  edit.base = canvas; edit.lm = null; edit.nails = null; edit.sel = -1;
-  if (v.ok) {
-    edit.lm = v.lm;
-    edit.nails = v.nails;
-    edit.original = v.nails.map((n) => ({ ...n, outline: n.outline.slice() }));
-    render();
-  } else drawMap(canvas, result);
-  if (v.seconds > TARGET_SECONDS) v.soft.push("This scan took longer than 3 seconds. Note it in your scorecard.");
-  if (!v.ok) return showProblem(v, v.title, v.text);
-  showGood(v);
-}
-
-// Open a photo. Tries the normal way first, then a second way some phones need.
-async function openImage(file) {
-  try {
-    return await new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error("image load failed"));
-      img.src = URL.createObjectURL(file);
-    });
-  } catch (e) {
-    if (window.createImageBitmap) return await createImageBitmap(file);
-    throw e;
-  }
-}
-
-// Shrink big photos so scanning stays quick on older phones
-function shrink(img) {
-  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
-  const scale = Math.min(1, MAX_SIDE / Math.max(w, h));
-  const c = document.createElement("canvas");
-  c.width = Math.round(w * scale); c.height = Math.round(h * scale);
-  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-  return c;
-}
-
-// Brightness (0 dark – 255 bright), contrast and sharpness, measured on a small copy
-function checkQuality(src) {
-  const W = 320, H = Math.max(1, Math.round(src.height * W / src.width));
-  const c = document.createElement("canvas"); c.width = W; c.height = H;
-  const ctx = c.getContext("2d", { willReadFrequently: true });
-  ctx.drawImage(src, 0, 0, W, H);
-  const d = ctx.getImageData(0, 0, W, H).data;
-  const g = new Float32Array(W * H);
-  let sum = 0;
-  for (let i = 0; i < W * H; i++) {
-    const v = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
-    g[i] = v; sum += v;
-  }
-  const avg = sum / (W * H);
-  let spread = 0;
-  for (let i = 0; i < W * H; i++) spread += (g[i] - avg) * (g[i] - avg);
-  let n = 0, m = 0, m2 = 0;
-  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
-    const i = y * W + x;
-    const lap = g[i - 1] + g[i + 1] + g[i - W] + g[i + W] - 4 * g[i];
-    n++; m += lap; m2 += lap * lap;
-  }
-  const mean = m / n;
-  return { brightness: avg, contrast: Math.sqrt(spread / (W * H)), sharpness: m2 / n - mean * mean };
-}
-const isDark = (q) => q.brightness < 60;
-const isBright = (q) => q.brightness > 225;
-const isBlurry = (q) => q.sharpness < 12;
-
-/* ---------- Judging the photo ---------- */
-const inside = (p) => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1;
-function bendAngle(a, b, c) { // how far a finger bends at joint b, in degrees (0 = straight)
-  const u = [b.x - a.x, b.y - a.y, b.z - a.z], v = [c.x - b.x, c.y - b.y, c.z - b.z];
-  const dot = u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
-  const len = Math.hypot(...u) * Math.hypot(...v) || 1;
-  return Math.acos(Math.max(-1, Math.min(1, dot / len))) * 180 / Math.PI;
-}
-
-function judge(result, q) {
-  const count = result.landmarks.length;
-  if (count === 0) {
-    if (isDark(q)) return problem("Too dark to find your hand", "Move somewhere brighter, like near a window, and try again.");
-    if (isBlurry(q) && q.contrast > 12) return problem("The photo is too blurry", "Hold the phone still for a second before you take the photo.");
-    return problem("We couldn't find a hand", "Rest your hand flat with the back facing up, fit all five nails in the photo, and try again.");
-  }
-  if (count > 1) return problem("We found two hands", "Show just one hand. Move your other hand out of the photo.");
-
-  const lm = result.landmarks[0], world = result.worldLandmarks[0];
-  const v = { lm, soft: softTips(q, lm) };
-
-  // Every nail must be in the photo (the wrist doesn't matter)
-  if (!NAILS.every(([joint, tip]) => inside(lm[joint]) && inside(lm[tip])))
-    return { ...v, ...problem("Some nails are cut off", "Move the phone back a little so all five nails, thumb included, fit in the photo.") };
-
-  // Long nails reach past the fingertip, so check there's room beyond each tip
-  const nearEdge = NAILS.some(([joint, tip]) => {
-    const a = lm[joint], b = lm[tip];
-    return !inside({ x: b.x + (b.x - a.x) * 0.9, y: b.y + (b.y - a.y) * 0.9 });
-  });
-  if (nearEdge) v.soft.push("Your nail tips are close to the edge of the photo. Leave a little space past them.");
-
-  // Fingers should lie straight
-  const bentFingers = FINGERS.filter(([k, m, t]) => bendAngle(world[k], world[m], world[t]) > 70).length;
-  if (bentFingers >= 2)
-    return { ...v, ...problem("Lay your fingers flat and straight", "Rest your hand flat, back facing up, with fingers straight and slightly apart.") };
-
-  // Left or right? In this pose the back of the hand faces the camera, so the way
-  // the knuckles turn tells us which hand it is.
-  const w = lm[0], i = lm[5], p = lm[17];
-  const turn = (i.x - w.x) * (p.y - w.y) - (i.y - w.y) * (p.x - w.x);
-  const hand = turn > 0 ? "right" : "left";
-  // The hand finder also guesses left or right from how the hand looks. If it confidently
-  // disagrees, the palm is probably facing up instead of the back of the hand.
-  const guess = result.handedness && result.handedness[0] && result.handedness[0][0];
-  if (guess && guess.score >= 0.8 && guess.categoryName.toLowerCase() !== hand)
-    return { ...v, hand: null, ...problem("Your palm seems to be facing up", "Turn your hand over so the back of your hand and your nails face the camera.") };
-
-  return { ...v, hand, ok: true, title: "5 nails found", text: "Check each pink outline sits on its nail, from the cuticle to the tip." };
-}
-function problem(title, text) { return { ok: false, title, text, soft: [] }; }
-function softTips(q, lm) {
-  const tips = [];
-  if (isDark(q)) tips.push("The photo is a bit dark. Brighter light will help find your nails later.");
-  if (isBright(q)) tips.push("There's a lot of glare. Try softer light so your nails don't shine white.");
-  if (isBlurry(q)) tips.push("The photo is a little blurry. Hold the phone still.");
-  const tipsPts = [4, 8, 12, 16, 20].map((k) => lm[k]);
-  const xs = tipsPts.map((p) => p.x), ys = tipsPts.map((p) => p.y);
-  const spread = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
-  if (spread < 0.3) tips.push("Your hand looks small in the photo. Move the phone a bit closer.");
-  return tips;
-}
-
-/* ---------- Nail finder ----------
-   For each finger, the scan looks along the finger, past the fingertip dot, and works out
-   where the nail is from colour: where skin turns into nail (the cuticle), where the nail
-   meets the background (the tip), and how wide it is. Bare nails, polish and extensions. */
-const NAIL_FINGERS = [
-  { name: "Thumb",  p: 2,  d: 3,  t: 4 },
-  { name: "Index",  p: 6,  d: 7,  t: 8 },
-  { name: "Middle", p: 10, d: 11, t: 12 },
-  { name: "Ring",   p: 14, d: 15, t: 16 },
-  { name: "Little", p: 18, d: 19, t: 20 },
-];
-
-// The photo's colours in a form that matches how people see colour differences
-function labImage(canvas) {
-  const W = canvas.width, H = canvas.height;
-  const d = canvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, W, H).data;
-  const lab = new Float32Array(W * H * 3);
-  const lin = new Float32Array(256);
-  for (let i = 0; i < 256; i++) { const c = i / 255; lin[i] = c > 0.04045 ? Math.pow((c + 0.055) / 1.055, 2.4) : c / 12.92; }
-  const f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
-  for (let i = 0, j = 0; i < W * H; i++, j += 4) {
-    const r = lin[d[j]], g = lin[d[j + 1]], b = lin[d[j + 2]];
-    const fx = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047);
-    const fy = f(0.2126 * r + 0.7152 * g + 0.0722 * b);
-    const fz = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883);
-    lab[i * 3] = 116 * fy - 16; lab[i * 3 + 1] = 500 * (fx - fy); lab[i * 3 + 2] = 200 * (fy - fz);
-  }
-  return { W, H, lab };
-}
-function sampleLab(img, x, y) {
-  const { W, H, lab } = img;
-  x = Math.min(Math.max(x, 0), W - 1.001); y = Math.min(Math.max(y, 0), H - 1.001);
-  const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
-  const a = (y0 * W + x0) * 3, b = a + 3, c = a + W * 3, d = c + 3;
-  const out = [0, 0, 0];
-  for (let k = 0; k < 3; k++)
-    out[k] = lab[a + k] * (1 - fx) * (1 - fy) + lab[b + k] * fx * (1 - fy) + lab[c + k] * (1 - fx) * fy + lab[d + k] * fx * fy;
-  return out;
-}
-// How different two colours look. wl < 1 cares less about light/dark, so shine and shadow matter less.
-const gap = (a, b, wl) => Math.hypot(wl * (a[0] - b[0]), a[1] - b[1], a[2] - b[2]);
-function medianColour(list) {
-  return [0, 1, 2].map((k) => {
-    const v = list.map((c) => c[k]).sort((p, q) => p - q), n = v.length;
-    return n % 2 ? v[(n - 1) / 2] : (v[n / 2 - 1] + v[n / 2]) / 2;
-  });
-}
-
-const NS = 72, NT = 44; // the search grid: 72 steps along the finger, 44 across
-function floodGrid(ok, seeds) {
-  const reg = new Uint8Array(NS * NT), q = [];
-  for (const k of seeds) if (ok[k] && !reg[k]) { reg[k] = 1; q.push(k); }
-  while (q.length) {
-    const k = q.pop(), i = Math.floor(k / NT), j = k % NT;
-    const nb = [];
-    if (i + 1 < NS) nb.push(k + NT); if (i > 0) nb.push(k - NT);
-    if (j + 1 < NT) nb.push(k + 1); if (j > 0) nb.push(k - 1);
-    for (const n of nb) if (ok[n] && !reg[n]) { reg[n] = 1; q.push(n); }
-  }
-  return reg;
-}
-function grow(m) {
-  const o = m.slice();
-  for (let i = 0; i < NS; i++) for (let j = 0; j < NT; j++) {
-    const k = i * NT + j;
-    if (m[k]) continue;
-    if ((i > 0 && m[k - NT]) || (i + 1 < NS && m[k + NT]) || (j > 0 && m[k - 1]) || (j + 1 < NT && m[k + 1])) o[k] = 1;
-  }
-  return o;
-}
-const invert = (m) => m.map((x) => x ? 0 : 1);
-// Smooth the found area and fill small holes (glitter, nail art, reflections)
-function closeAndFill(reg, r) {
-  let m = reg;
-  for (let n = 0; n < r; n++) m = grow(m);
-  for (let n = 0; n < r; n++) m = invert(grow(invert(m)));
-  const edge = [];
-  for (let i = 0; i < NS; i++) edge.push(i * NT, i * NT + NT - 1);
-  for (let j = 0; j < NT; j++) edge.push(j, (NS - 1) * NT + j);
-  const outside = floodGrid(invert(m), edge);
-  return m.map((x, k) => (x || !outside[k]) ? 1 : 0);
-}
-function convexHull(pts) {
-  pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  if (pts.length < 3) return pts;
-  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const lo = [], up = [];
-  for (const p of pts) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
-  for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
-  return lo.slice(0, -1).concat(up.slice(0, -1));
-}
-
-function findNail(img, P, D, T) {
-  const L = Math.hypot(T.x - D.x, T.y - D.y) || 1;
-  const u = [(T.x - D.x) / L, (T.y - D.y) / L], v = [-u[1], u[0]];
-  const step = L / 24;
-  const sAt = (i) => 0.2 * L + i * step, tAt = (j) => -0.9 * L + j * step;
-  const si = (s) => Math.round((s - 0.2 * L) / step), c = Math.round(0.9 * L / step);
-  const N = NS * NT;
-
-  // Read the colours along the finger; each cell averages a small patch to smooth out glitter
-  const g = new Array(N);
-  for (let i = 0; i < NS; i++) for (let j = 0; j < NT; j++) {
-    const acc = [0, 0, 0];
-    for (const a of [-1 / 3, 0, 1 / 3]) for (const b of [-1 / 3, 0, 1 / 3]) {
-      const s = sAt(i) + a * step, t = tAt(j) + b * step;
-      const col = sampleLab(img, D.x + s * u[0] + t * v[0], D.y + s * u[1] + t * v[1]);
-      acc[0] += col[0]; acc[1] += col[1]; acc[2] += col[2];
-    }
-    g[i * NT + j] = [acc[0] / 9, acc[1] / 9, acc[2] / 9];
-  }
-
-  // Skin colour: the middle of the finger, before the last joint
-  const skinSamples = [];
-  for (let n = 0; n < 9; n++) { const k = 0.25 + n * 0.0625; skinSamples.push(sampleLab(img, P.x + (D.x - P.x) * k, P.y + (D.y - P.y) * k)); }
-  const skin = medianColour(skinSamples);
-  // Nail colour: just around the fingertip dot
-  const seeds = [];
-  for (let i = si(0.85 * L); i <= si(1.0 * L); i++) for (let j = c - 2; j <= c + 2; j++) seeds.push(i * NT + j);
-  const nail = medianColour(seeds.map((k) => g[k]));
-  const contrast = gap(nail, skin, 0.3);
-
-  const dsk = g.map((x) => gap(x, skin, 0.3)), dn = g.map((x) => gap(x, nail, 0.3));
-  // Background colour: the non-skin colour around the outside of the search area
-  const border = [];
-  for (let i = 0; i < NS; i++) border.push(g[i * NT], g[i * NT + NT - 1]);
-  for (let j = 0; j < NT; j++) border.push(g[(NS - 1) * NT + j]);
-  const bgList = border.filter((x) => gap(x, skin, 0.3) > 20);
-  const bg = bgList.length > 5 ? medianColour(bgList) : null;
-  const dbg = g.map((x) => bg ? gap(x, bg, 0.5) : 999);
-  const isBg = g.map((_, k) => ((dbg[k] < dsk[k] && dbg[k] < dn[k] && dbg[k] < 22) || (dsk[k] > 45 && dn[k] > 45)) ? 1 : 0);
-  const blob = floodGrid(invert(isBg), seeds);
-
-  // Path 1, strongly coloured nails: start where it's most clearly 'nail' and spread in small colour steps
-  let best = -1, bestScore = -1;
-  for (let i = si(0.6 * L); i <= si(1.3 * L); i++) for (let j = c - 10; j <= c + 10; j++) {
-    const k = i * NT + j, sc = Math.min(dsk[k], dbg[k]);
-    if (sc > bestScore) { bestScore = sc; best = k; }
-  }
-  if (bestScore > 32) { // only clearly coloured polish (bare nails and skin edges score 22–30)
-    const reg = new Uint8Array(N); reg[best] = 1;
-    const q = [best];
-    while (q.length) {
-      const k = q.shift(), i = Math.floor(k / NT), j = k % NT;
-      const nb = [];
-      if (i + 1 < NS) nb.push(k + NT); if (i > 0) nb.push(k - NT);
-      if (j + 1 < NT) nb.push(k + 1); if (j > 0) nb.push(k - 1);
-      for (const n of nb) {
-        if (reg[n] || dsk[n] <= 14 || gap(g[n], g[k], 0.4) >= 8) continue;
-        if (dbg[n] < 10 && gap(g[n], g[best], 0.3) > 20) continue; // looks like the background
-        reg[n] = 1; q.push(n);
-      }
-    }
-    const done = closeAndFill(reg, 2);
-    let count = 0, edge = false;
-    for (let k = 0; k < N; k++) if (done[k]) {
-      count++;
-      const i = Math.floor(k / NT), j = k % NT;
-      if (j === 0 || j === NT - 1 || i === NS - 1) edge = true;
-    }
-    const area = count * step * step / (L * L);
-    if (area > 0.12 && area < 1.6 && !edge) return makeNail(done, "strong");
-  }
-
-  // Path 2, everything else: follow the finger out from the cuticle to where it meets the background
-  const coloured = contrast > 14;
-  const nailish = g.map((_, k) => (dn[k] < 24 && dn[k] + 3 < dsk[k] && !isBg[k]) ? 1 : 0);
-  let s0 = 0.55 * L;
-  if (coloured) {
-    const hits = (i) => nailish[i * NT + c - 1] + nailish[i * NT + c] + nailish[i * NT + c + 1];
-    for (let i = si(0.35 * L); i < si(1.0 * L); i++) if (hits(i) >= 2 && hits(i + 1) >= 2) { s0 = sAt(i); break; }
-  }
-  let fwCells = 0; const r5 = si(0.5 * L);
-  for (let j = 0; j < NT; j++) fwCells += blob[r5 * NT + j];
-  const hwMax = 0.42 * Math.max(fwCells * step, 0.5 * L);
-  const reg = new Uint8Array(N);
-  for (let i = 0; i < NS; i++) {
-    const s = sAt(i);
-    if (s < s0) continue;
-    if (!blob[i * NT + c]) break;
-    let a = c, b = c;
-    while (a - 1 >= 0 && blob[i * NT + a - 1]) a--;
-    while (b + 1 < NT && blob[i * NT + b + 1]) b++;
-    let left, right;
-    if (coloured) {
-      let na = c, nb = c;
-      while (na - 1 >= a && nailish[i * NT + na - 1]) na--;
-      while (nb + 1 <= b && nailish[i * NT + nb + 1]) nb++;
-      left = (c - na) * step; right = (nb - c) * step;
-      if (!nailish[i * NT + c] || left + right < 0.15 * L) { left = Math.min((c - a) * step, hwMax); right = Math.min((b - c) * step, hwMax); }
-    } else {
-      left = Math.min((c - a) * step, hwMax); right = Math.min((b - c) * step, hwMax);
-    }
-    const ramp = Math.sqrt(Math.min(1, (s - s0) / (0.15 * L) + 0.15));
-    left = Math.min(left, hwMax * ramp * 1.15); right = Math.min(right, hwMax * ramp * 1.15);
-    const j0 = Math.max(0, c - Math.round(left / step)), j1 = Math.min(NT - 1, c + Math.round(right / step));
-    for (let j = j0; j <= j1; j++) reg[i * NT + j] = 1;
-  }
-  const kept = floodGrid(reg, [si(Math.max(s0, 0.9 * L)) * NT + c]);
-  return makeNail(closeAndFill(kept, 1), coloured ? "colour" : "bare");
-
-  // Turn the found cells into an outline that can be drawn and dragged
-  function makeNail(cells, mode) {
-    let pts = [];
-    for (let k = 0; k < N; k++) if (cells[k]) pts.push([sAt(Math.floor(k / NT)), tAt(k % NT)]);
-    if (pts.length < 6) { // nothing usable: fall back to a nail-shaped estimate at the fingertip
-      mode = "estimate"; pts = [];
-      for (let a = 0; a < 24; a++) { const th = a / 24 * 2 * Math.PI; pts.push([0.85 * L + 0.32 * L * Math.cos(th), 0.24 * L * Math.sin(th)]); }
-    }
-    const ms = pts.reduce((m, p) => m + p[0], 0) / pts.length, mt = pts.reduce((m, p) => m + p[1], 0) / pts.length;
-    let outline = convexHull(pts).map(([s, t]) => {
-      // cells are measured at their middles; push the outline out by half a cell
-      const a = s - ms, b = t - mt, r = Math.hypot(a, b) || 1, grow = (r + step * 0.5) / r;
-      return [a * grow, b * grow];
-    });
-    return {
-      cx: D.x + ms * u[0] + mt * v[0], cy: D.y + ms * u[1] + mt * v[1],
-      angle: Math.atan2(u[1], u[0]), outline, sl: 1, sw: 1, mode,
-    };
-  }
-}
-
-function findAllNails(canvas, lm) {
-  const img = labImage(canvas);
-  const pt = (k) => ({ x: lm[k].x * canvas.width, y: lm[k].y * canvas.height });
-  return NAIL_FINGERS.map((f) => ({ name: f.name, ...findNail(img, pt(f.p), pt(f.d), pt(f.t)), fixed: false, fixMs: 0 }));
-}
-
-/* ---------- Drawing the nails, and fixing them by dragging ---------- */
-const edit = { nails: null, original: null, base: null, lm: null, sel: -1, drag: null };
-
-// A nail's outline in photo coordinates, after any moving, stretching or turning
-function nailPoints(n) {
-  const ca = Math.cos(n.angle), sa = Math.sin(n.angle);
-  return n.outline.map(([a, b]) => [n.cx + a * n.sl * ca - b * n.sw * sa, n.cy + a * n.sl * sa + b * n.sw * ca]);
-}
-function nailReach(n) { // how far the tip and the side stick out from the middle
-  return { along: Math.max(...n.outline.map((p) => p[0])), across: Math.max(...n.outline.map((p) => p[1])) };
-}
-function handles(n) {
-  const r = nailReach(n), ca = Math.cos(n.angle), sa = Math.sin(n.angle);
-  return {
-    tip:  [n.cx + r.along * n.sl * ca, n.cy + r.along * n.sl * sa],
-    side: [n.cx - r.across * n.sw * sa, n.cy + r.across * n.sw * ca],
-  };
-}
-function smoothShape(ctx, pts) {
-  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  ctx.beginPath();
-  const start = mid(pts[pts.length - 1], pts[0]);
-  ctx.moveTo(...start);
-  pts.forEach((p, i) => { const m = mid(p, pts[(i + 1) % pts.length]); ctx.quadraticCurveTo(p[0], p[1], m[0], m[1]); });
-  ctx.closePath();
-}
-function inside2(pt, poly) {
-  let hit = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i], [xj, yj] = poly[j];
-    if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) hit = !hit;
-  }
-  return hit;
-}
-
-function render() {
-  const view = $("view"), src = edit.base;
-  if (!src) return;
-  if (view.width !== src.width || view.height !== src.height) { view.width = src.width; view.height = src.height; }
-  const ctx = view.getContext("2d");
-  ctx.drawImage(src, 0, 0);
-  const s = Math.max(src.width, src.height) / 1024;
-  if (edit.lm) { // faint hand map underneath
-    const pt = (k) => [edit.lm[k].x * src.width, edit.lm[k].y * src.height];
-    ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 1.5 * s;
-    LINKS.forEach(([a, b]) => { ctx.beginPath(); ctx.moveTo(...pt(a)); ctx.lineTo(...pt(b)); ctx.stroke(); });
-  }
-  (edit.nails || []).forEach((n, i) => {
-    const pts = nailPoints(n), on = i === edit.sel;
-    smoothShape(ctx, pts);
-    ctx.fillStyle = on ? "rgba(255,95,162,.35)" : "rgba(255,95,162,.22)";
-    ctx.fill();
-    ctx.lineWidth = (on ? 3 : 2) * s; ctx.strokeStyle = "#ff5fa2"; ctx.stroke();
-  });
-  const n = edit.nails && edit.nails[edit.sel];
-  if (n) {
-    const h = handles(n);
-    [[h.tip, "#ff5fa2"], [h.side, "#ffffff"]].forEach(([p, col]) => {
-      ctx.beginPath(); ctx.arc(p[0], p[1], 11 * s, 0, Math.PI * 2);
-      ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 3 * s; ctx.strokeStyle = "#1a0a12"; ctx.stroke();
-    });
-    ctx.font = `600 ${Math.round(18 * s)}px -apple-system, Segoe UI, Roboto, sans-serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "bottom";
-    const label = n.name, ys = nailPoints(n).map((p) => p[1]);
-    const lx = n.cx, ly = Math.min(...ys) - 10 * s;
-    const w = ctx.measureText(label).width + 14 * s;
-    ctx.fillStyle = "rgba(15,13,26,.85)"; ctx.fillRect(lx - w / 2, ly - 24 * s, w, 26 * s);
-    ctx.fillStyle = "#ffffff"; ctx.fillText(label, lx, ly);
-  }
-}
-
-function photoPoint(e) {
-  const view = $("view"), r = view.getBoundingClientRect();
-  return [(e.clientX - r.left) * view.width / r.width, (e.clientY - r.top) * view.height / r.height];
-}
-function startFix(e) {
-  if (!edit.nails) return;
-  const p = photoPoint(e), view = $("view");
-  const grab = 26 * view.width / view.getBoundingClientRect().width; // finger-sized grab area
-  const n = edit.nails[edit.sel];
-  if (n) {
-    const h = handles(n);
-    if (Math.hypot(p[0] - h.tip[0], p[1] - h.tip[1]) < grab) edit.drag = { kind: "tip" };
-    else if (Math.hypot(p[0] - h.side[0], p[1] - h.side[1]) < grab) edit.drag = { kind: "side" };
-  }
-  if (!edit.drag) {
-    // tap on a nail: the selected one first, then the others
-    const order = [edit.sel, ...edit.nails.keys()].filter((i) => i >= 0);
-    const hit = order.find((i) => inside2(p, nailPoints(edit.nails[i])));
-    if (hit === undefined) { edit.sel = -1; render(); return; }
-    edit.sel = hit;
-    edit.drag = { kind: "move", last: p };
-  }
-  const sel = edit.nails[edit.sel];
-  if (sel.firstTouch == null) sel.firstTouch = performance.now();
-  view.setPointerCapture(e.pointerId);
-  e.preventDefault();
-  render();
-}
-function moveFix(e) {
-  if (!edit.drag) return;
-  const n = edit.nails[edit.sel], p = photoPoint(e), r = nailReach(n);
-  if (edit.drag.kind === "move") {
-    n.cx += p[0] - edit.drag.last[0]; n.cy += p[1] - edit.drag.last[1]; edit.drag.last = p;
-  } else if (edit.drag.kind === "tip") {
-    const dx = p[0] - n.cx, dy = p[1] - n.cy;
-    n.angle = Math.atan2(dy, dx);
-    n.sl = Math.max(0.25, Math.hypot(dx, dy) / r.along);
-  } else {
-    const dx = p[0] - n.cx, dy = p[1] - n.cy;
-    const across = Math.abs(-dx * Math.sin(n.angle) + dy * Math.cos(n.angle));
-    n.sw = Math.max(0.25, across / r.across);
-  }
-  n.fixed = true;
-  e.preventDefault();
-  render();
-}
-function endFix() {
-  if (!edit.drag) return;
-  const n = edit.nails[edit.sel];
-  if (n && n.fixed) n.fixMs = performance.now() - n.firstTouch; // first touch to last let-go on this nail
-  edit.drag = null;
-}
-$("view").addEventListener("pointerdown", startFix);
-$("view").addEventListener("pointermove", moveFix);
-$("view").addEventListener("pointerup", endFix);
-$("view").addEventListener("pointercancel", endFix);
-$("undoBtn").addEventListener("click", () => {
-  edit.nails = edit.original.map((n) => ({ ...n, outline: n.outline.slice(), fixed: false, fixMs: 0, firstTouch: null }));
-  edit.sel = -1; render();
-});
-
-/* ---------- Drawing the hand map (shown when there's a problem) ---------- */
-function drawMap(src, result) {
-  const view = $("view");
-  view.width = src.width; view.height = src.height;
-  const ctx = view.getContext("2d");
-  ctx.drawImage(src, 0, 0);
-  if (!result) return;
-  const s = Math.max(src.width, src.height) / 1024;
-  result.landmarks.forEach((lm) => {
-    const pt = (k) => [lm[k].x * src.width, lm[k].y * src.height];
-    ctx.strokeStyle = "rgba(255,255,255,.85)";
-    ctx.lineWidth = 3 * s;
-    LINKS.forEach(([a, b]) => { ctx.beginPath(); ctx.moveTo(...pt(a)); ctx.lineTo(...pt(b)); ctx.stroke(); });
-    lm.forEach((_, k) => {
-      const tip = [4, 8, 12, 16, 20].includes(k);
-      ctx.beginPath();
-      ctx.arc(...pt(k), (tip ? 9 : 6) * s, 0, Math.PI * 2);
-      ctx.fillStyle = tip ? "#ff5fa2" : "#ffffff";
-      ctx.fill();
-      ctx.lineWidth = 2 * s; ctx.strokeStyle = "#1a0a12"; ctx.stroke();
-    });
-  });
-}
-
-/* ---------- Showing results ---------- */
-function showWorking() {
-  state.last = null;
-  $("guide").classList.add("hidden");
-  $("resultCard").classList.remove("hidden");
-  $("verdict").className = "verdict working";
-  $("verdictTitle").textContent = "Scanning…";
-  $("verdictText").textContent = "";
-  $("facts").textContent = "";
-  ["softTips", "judge", "retry", "again", "switchBtn"].forEach((id) => $(id).classList.add("hidden"));
-  const c = $("view"); c.width = 1; c.height = 1;
-}
-function factsLine(v) {
-  const bits = [];
-  if (v.hand) bits.push(v.hand === "left" ? "Left hand" : "Right hand");
-  if (v.seconds != null) bits.push(v.seconds.toFixed(1) + " seconds");
-  return bits.join(" · ");
-}
-function showSoft(list) {
-  const ul = $("softTips");
-  ul.innerHTML = "";
-  (list || []).forEach((t) => { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
-  ul.classList.toggle("hidden", !list || !list.length);
-}
-function showProblem(v, title, text) {
-  $("verdict").className = "verdict problem";
-  $("verdictTitle").textContent = title;
-  $("verdictText").textContent = text;
-  $("facts").textContent = v ? factsLine(v) : "";
-  showSoft(v ? v.soft : []);
-  $("retry").classList.remove("hidden");
-  $("resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-function showGood(v) {
-  state.last = v;
-  $("verdict").className = "verdict good";
-  $("verdictTitle").textContent = v.title;
-  $("verdictText").textContent = v.text;
-  $("facts").textContent = factsLine(v);
-  $("switchBtn").classList.remove("hidden");
-  showSoft(v.soft);
-  $("judge").classList.remove("hidden");
-  $("resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-function judged(fit) {
-  const v = state.last; if (!v) return;
-  state.last = null;
-  const fixedNails = edit.nails.filter((n) => n.fixed);
-  state.log.push({
-    hand: v.hand, fit, secs: v.seconds, when: Date.now(),
-    fixed: fixedNails.length,
-    fixSecs: fixedNails.length ? Math.max(...fixedNails.map((n) => n.fixMs)) / 1000 : 0,
-  });
-  edit.sel = -1; render();
-  saveLog(); renderLog();
-  $("judge").classList.add("hidden");
-  $("switchBtn").classList.add("hidden");
-  $("again").classList.remove("hidden");
-}
-
-/* ---------- Test log (results only, kept on this phone) ---------- */
-function loadLog() { try { return JSON.parse(localStorage.getItem(LOG_KEY)) || []; } catch (e) { return []; } }
-function saveLog() { try { localStorage.setItem(LOG_KEY, JSON.stringify(state.log)); } catch (e) {} }
-function renderLog() {
-  const body = $("logBody"); body.innerHTML = "";
-  const passes = state.log.filter((r) => r.fit !== "off" && r.secs <= TARGET_SECONDS && r.fixSecs <= 20).length;
-  const fitName = { good: "Good", okay: "Okay", off: "Off" };
-  state.log.forEach((r, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${i + 1}</td><td>${r.hand === "left" ? "Left" : "Right"}</td>` +
-      `<td class="${r.fit === "off" ? "n" : "y"}">${fitName[r.fit]}</td>` +
-      `<td class="${r.fixSecs > 20 ? "n" : ""}">${r.fixed ? `${r.fixed} in ${Math.round(r.fixSecs)}s` : "None"}</td>` +
-      `<td class="${r.secs <= TARGET_SECONDS ? "" : "n"}">${r.secs.toFixed(1)}s</td>`;
-    body.appendChild(tr);
-  });
-  $("logTable").classList.toggle("hidden", !state.log.length);
-  $("clearBtn").classList.toggle("hidden", !state.log.length);
-  $("score").innerHTML = state.log.length
-    ? `<strong>${passes}</strong> passing ${passes === 1 ? "scan" : "scans"} so far (goal: 10)${passes >= 10 ? " · Stage 2 done!" : ""}`
-    : "No scans yet.";
-}
-renderLog();
-</script>
 </body>
 </html>
