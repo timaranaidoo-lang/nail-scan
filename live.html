@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Live Try-On · Nail Care by Tee</title>
+<meta name="theme-color" content="#1d1830">
+<style>
+  :root {
+    --bg-top: #f6f1ff; --bg-bottom: #eefaf4; --card: #ffffff; --card2: #f4effd; --line: #e7e0f6;
+    --ink: #2a2440; --quiet: #5c5577; --lilac: #7653d9; --lilac-dark: #5f3fc2; --lilac-soft: #ece5ff;
+    --mint: #c9f1e2; --ok: #15694f; --ok-soft: #dcf6ec; --bad: #a8324b; --bad-soft: #fde8ee;
+    --dur: 200ms; --ease-out: cubic-bezier(.2, .8, .2, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    color: var(--ink); line-height: 1.5; background: #1d1830;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  button, a, label, summary { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  :focus-visible { outline: 3px solid var(--lilac); outline-offset: 2px; }
+  .hidden { display: none !important; }
+
+  /* Full-screen layout: the camera fills everything above the menu, so the nails never scroll away */
+  .app { position: fixed; inset: 0; display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .stage { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #1d1830; }
+  #view { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+  #view.mirrored { transform: scaleX(-1); }
+  video { display: none; }
+
+  .topbar {
+    position: absolute; left: 0; right: 0; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: max(8px, env(safe-area-inset-top)) 10px 8px;
+    background: linear-gradient(180deg, rgba(29,24,48,.55), rgba(29,24,48,0));
+  }
+  .home {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px 0 10px;
+    border-radius: 999px; background: rgba(255,255,255,.92); color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 600;
+  }
+  .home svg { width: 20px; height: 20px; }
+  .badges { display: flex; gap: 6px; align-items: center; }
+  .badge { font-size: 13px; font-weight: 600; color: #fff; background: rgba(29,24,48,.72); border-radius: 999px; padding: 4px 10px; font-variant-numeric: tabular-nums; }
+  .hint {
+    position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 10; text-align: center;
+    font-size: 15px; color: #fff; background: rgba(29,24,48,.82); border-radius: 12px; padding: 8px 12px;
+  }
+  .toast {
+    position: absolute; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + 56px); z-index: 20;
+    transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px);
+    font-size: 15px; color: #fff; background: rgba(29,24,48,.9); border-radius: 12px; padding: 10px 14px; text-align: center;
+    transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);
+  }
+  .toast.out { opacity: 0; transform: translate(-50%, -8px); pointer-events: none; }
+
+  .overlay {
+    position: absolute; inset: 0; z-index: 15; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 24px; text-align: center; background-color: var(--bg-top); background-image: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  }
+  .overlay h1 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-size: 28px; font-weight: 600; line-height: 1.2; margin: 0; }
+  .overlay p { margin: 0; color: var(--quiet); font-size: 16px; max-width: 320px; }
+  .overlay .home { position: absolute; top: max(8px, env(safe-area-inset-top)); left: 10px; border: 1px solid var(--line); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 18px;
+    border: 0; border-radius: 14px; background: var(--lilac); color: #fff; font-family: inherit; font-size: 16px; font-weight: 650; line-height: 1.2; cursor: pointer;
+    transition: transform 120ms var(--ease-out), background-color 120ms var(--ease-out);
+  }
+  .btn:active { transform: scale(.97); background: var(--lilac-dark); }
+  .btn.ghost { background: #fff; color: var(--lilac-dark); border: 1.5px solid var(--lilac); }
+  .btn.ghost:active { background: var(--lilac-soft); }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+
+  /* The menu that slides up */
+  .sheet {
+    flex: none; position: relative; z-index: 5; background: #fff; border-radius: 22px 22px 0 0;
+    box-shadow: 0 -10px 30px -12px rgba(29,24,48,.45);
+    padding: 0 12px max(10px, env(safe-area-inset-bottom));
+  }
+  .grab {
+    display: flex; width: 100%; justify-content: center; align-items: center; height: 44px; margin-bottom: -10px; border: 0; background: none;
+    cursor: pointer; padding: 0; touch-action: none;
+  }
+  .grab span { width: 42px; height: 5px; border-radius: 3px; background: #cfc7e3; }
+  .actions { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 8px; }
+  .actions .btn { flex-direction: column; gap: 2px; min-height: 60px; padding: 6px 4px; font-size: 14px; border-radius: 16px; text-align: center; }
+  .actions .btn svg { width: 24px; height: 24px; flex: none; }
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 10px; background: var(--card2); border-radius: 14px; padding: 4px; }
+  .tab {
+    min-height: 44px; border: 0; border-radius: 11px; background: none; color: var(--quiet); font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1.1; cursor: pointer;
+    transition: background-color 120ms var(--ease-out), color 120ms var(--ease-out);
+  }
+  .tab[aria-selected="true"] { background: #fff; color: var(--lilac-dark); box-shadow: 0 2px 6px -2px rgba(95,63,194,.35); }
+  .panels { overflow-y: auto; overscroll-behavior: contain; max-height: 34vh; max-height: min(34dvh, 300px); }
+  .sheet.closed .panels { display: none; }
+  .panel { padding: 14px 4px 6px; animation: rise var(--dur) var(--ease-out); }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .label { font-size: 14px; color: var(--quiet); margin: 0 0 8px; display: flex; justify-content: space-between; gap: 8px; font-weight: 500; }
+  .group + .group { margin-top: 16px; }
+  .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+  .swatch {
+    position: relative; flex: none; width: 46px; height: 46px; border-radius: 50%; border: 3px solid #fff; outline: 2px solid var(--line);
+    cursor: pointer; padding: 0; transition: transform 120ms var(--ease-out);
+  }
+  .swatch:active { transform: scale(.94); }
+  .swatch[aria-pressed="true"] { outline: 3px solid var(--lilac-dark); }
+  .swatch[aria-pressed="true"]::after { /* a tick, so the choice isn't shown by colour alone */
+    content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); border-radius: 50%;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f3fc2' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 13px no-repeat;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  }
+  .swatch.any { overflow: visible; background: conic-gradient(#ff5f6d, #ffc371, #8fe3c5, #6fa8ff, #b9a2e8, #ff5fa2, #ff5f6d); }
+  .swatch.any input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border-radius: 50%; }
+  .swatch.any:has(input:focus-visible) { outline: 3px solid var(--lilac); outline-offset: 2px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--card2); color: var(--ink); border: 1.5px solid var(--line);
+    font-family: inherit; font-size: 15px; font-weight: 500; line-height: 1; cursor: pointer; transition: transform 120ms var(--ease-out), background-color 120ms var(--ease-out);
+  }
+  .chip:active { transform: scale(.96); }
+  .chip[aria-pressed="true"] { border-color: var(--lilac-dark); background: var(--lilac-soft); color: var(--lilac-dark); font-weight: 650; }
+  input[type=range] { display: block; width: 100%; height: 44px; margin: 0; accent-color: var(--lilac); cursor: pointer; }
+  /* Design picker: a row of little nail pictures that scrolls sideways */
+  .tiles { display: flex; gap: 8px; overflow-x: auto; margin: 0 -4px; padding: 4px 4px 10px; scroll-snap-type: x proximity; scroll-padding: 0 4px; -webkit-overflow-scrolling: touch; }
+  .tile {
+    position: relative; flex: none; width: 78px; min-height: 112px; padding: 8px 4px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    border-radius: 16px; border: 1.5px solid var(--line); background: var(--card2); color: var(--ink); scroll-snap-align: start;
+    font-family: inherit; font-size: 14px; font-weight: 500; line-height: 1.15; cursor: pointer; transition: transform 120ms var(--ease-out), background-color 120ms var(--ease-out);
+  }
+  .tile canvas { display: block; width: 48px; height: 66px; flex: none; }
+  .tile:active { transform: scale(.96); }
+  .tile[aria-pressed="true"] { border-color: var(--lilac-dark); box-shadow: inset 0 0 0 1.5px var(--lilac-dark); background: var(--lilac-soft); color: var(--lilac-dark); font-weight: 650; }
+  .tile[aria-pressed="true"]::after { /* a tick, so the choice isn't shown by colour alone */
+    content: ""; position: absolute; right: 5px; top: 5px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--lilac-dark) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat;
+  }
+  .tiles ~ .group { margin-top: 12px; }
+  .swatches.oneline { flex-wrap: nowrap; overflow-x: auto; margin: -5px -4px; padding: 5px 4px; -webkit-overflow-scrolling: touch; }
+  .label .now { color: var(--ink); font-weight: 650; }
+
+  .draw { display: flex; gap: 14px; align-items: flex-start; background: var(--card2); border-radius: 16px; padding: 12px; margin-top: 12px; }
+  .padbox { flex: none; width: 124px; text-align: center; }
+  #pad { display: block; width: 124px; height: auto; touch-action: none; border-radius: 12px; background: #fff; border: 1.5px dashed #cbbfe6; cursor: crosshair; }
+  .padnote { font-size: 13px; color: var(--quiet); margin: 6px 0 0; line-height: 1.3; }
+  .tools { flex: 1; min-width: 0; }
+  .tools .group + .group { margin-top: 12px; }
+  .tools .swatches { gap: 8px; }
+  .tools .swatch { width: 44px; height: 44px; }
+  .tools .chip { padding: 0 12px; background: #fff; }
+  .tools .row { display: flex; gap: 8px; margin-top: 12px; }
+  .tools .row .btn { flex: 1; min-height: 44px; font-size: 15px; padding: 0 8px; }
+  .note { font-size: 14px; color: var(--quiet); margin: 14px 0 0; }
+
+  @media (orientation: landscape) and (max-height: 600px) {
+    .app { flex-direction: row; }
+    .sheet {
+      width: min(380px, 48vw); height: 100%; overflow-y: auto; border-radius: 22px 0 0 22px;
+      padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 10px 12px;
+      box-shadow: -10px 0 30px -12px rgba(29,24,48,.45);
+    }
+    .grab { display: none; }
+    .sheet.closed .panels { display: block; }
+    .panels { max-height: none; }
+    .actions .btn { min-height: 52px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage">
+    <canvas id="view" width="640" height="480" role="img" aria-label="Camera view with the try-on nails painted on your hand"></canvas>
+    <video id="cam" playsinline muted></video>
+
+    <div class="topbar">
+      <a class="home" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        Home
+      </a>
+      <div class="badges">
+        <span class="badge hidden" id="modeBadge">Photo held</span>
+        <span class="badge hidden" id="fps"></span>
+        <span class="badge">Live try-on · test</span>
+      </div>
+    </div>
+    <div class="hint hidden" id="hint" role="status" aria-live="polite"></div>
+    <div class="toast out" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="overlay" id="startOverlay">
+      <a class="home" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        Home
+      </a>
+      <h1>Live Nail Try-On</h1>
+      <p id="startText" role="status" aria-live="polite">Point the camera at the back of your hand and the nails appear on it, live.</p>
+      <button class="btn" type="button" id="startBtn" style="min-height:56px;padding:0 26px;font-size:17px">Start camera</button>
+    </div>
+  </div>
+
+  <section class="sheet closed" id="sheet" aria-label="Try-on controls">
+    <button class="grab" type="button" id="grab" aria-controls="panels" aria-expanded="false" aria-label="Show design options"><span></span></button>
+
+    <div class="actions" id="liveRow">
+      <button class="btn ghost" type="button" id="flipBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4v-4h-4"/></svg>
+        Flip camera
+      </button>
+      <button class="btn" type="button" id="captureBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7l1.3-2h7l1.3 2h1.7A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.8"/></svg>
+        Capture photo
+      </button>
+      <button class="btn ghost" type="button" id="trainBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10m0 0l-4-4m4 4l4-4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        For training
+      </button>
+    </div>
+    <div class="actions hidden" id="photoRow">
+      <button class="btn ghost" type="button" id="retakeBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5M4 4v4.5h4.5"/></svg>
+        Retake
+      </button>
+      <button class="btn" type="button" id="snapBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11m0 0l-4.5-4.5M12 14l4.5-4.5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        Save picture
+      </button>
+      <button class="btn ghost" type="button" id="trainBtn2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10m0 0l-4-4m4 4l4-4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        For training
+      </button>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Design options">
+      <button class="tab" type="button" role="tab" id="tab-colour" aria-controls="p-colour" aria-selected="true">Colour</button>
+      <button class="tab" type="button" role="tab" id="tab-design" aria-controls="p-design" aria-selected="false" tabindex="-1">Design</button>
+      <button class="tab" type="button" role="tab" id="tab-shape" aria-controls="p-shape" aria-selected="false" tabindex="-1">Shape</button>
+      <button class="tab" type="button" role="tab" id="tab-fit" aria-controls="p-fit" aria-selected="false" tabindex="-1">Finish</button>
+    </div>
+
+    <div class="panels" id="panels">
+      <div class="panel" role="tabpanel" id="p-colour" aria-labelledby="tab-colour">
+        <p class="label" id="colourLabel">Nail colour</p>
+        <div class="swatches" id="swatches" role="group" aria-labelledby="colourLabel"></div>
+      </div>
+
+      <div class="panel hidden" role="tabpanel" id="p-design" aria-labelledby="tab-design">
+        <p class="label" id="designLabel"><span>Design</span><span class="now" id="designName" aria-live="polite">Plain</span></p>
+        <div class="tiles" id="designs" role="group" aria-labelledby="designLabel"></div>
+        <div class="group hidden" id="accentGroup">
+          <p class="label" id="accentLabel"><span>Second colour</span><span>for the tips and details</span></p>
+          <div class="swatches oneline" id="accents" role="group" aria-labelledby="accentLabel"></div>
+        </div>
+        <div class="draw hidden" id="drawPanel">
+          <div class="padbox">
+            <canvas id="pad" width="360" height="560" aria-label="Drawing pad: draw your design on this nail with your finger"></canvas>
+            <p class="padnote">Draw here with your finger</p>
+          </div>
+          <div class="tools">
+            <div class="group">
+              <p class="label" id="penLabel">Drawing colour</p>
+              <div class="swatches" id="pens" role="group" aria-labelledby="penLabel"></div>
+            </div>
+            <div class="group">
+              <p class="label" id="penSizeLabel">Pen</p>
+              <div class="chips" id="penSizes" role="group" aria-labelledby="penSizeLabel"></div>
+            </div>
+            <div class="row">
+              <button class="btn ghost" type="button" id="undoBtn">Undo</button>
+              <button class="btn ghost" type="button" id="clearBtn">Clear</button>
+            </div>
+          </div>
+        </div>
+        <div class="group hidden" id="spreadGroup">
+          <p class="label" id="spreadLabel">Wear the design on</p>
+          <div class="chips" id="spreads" role="group" aria-labelledby="spreadLabel"></div>
+        </div>
+      </div>
+
+      <div class="panel hidden" role="tabpanel" id="p-shape" aria-labelledby="tab-shape">
+        <div class="group">
+          <p class="label" id="shapeLabel">Shape</p>
+          <div class="chips" id="shapes" role="group" aria-labelledby="shapeLabel"></div>
+        </div>
+        <div class="group">
+          <label class="label" for="length"><span>Length</span><span id="lengthName">Medium</span></label>
+          <input type="range" id="length" min="1.1" max="3.4" step="0.05" value="1.9" aria-valuetext="Medium">
+        </div>
+      </div>
+
+      <div class="panel hidden" role="tabpanel" id="p-fit" aria-labelledby="tab-fit">
+        <div class="group">
+          <p class="label" id="finishLabel">Finish</p>
+          <div class="chips" id="finishes" role="group" aria-labelledby="finishLabel"></div>
+        </div>
+        <div class="group">
+          <label class="label" for="size"><span>Nail size</span><span id="sizeVal">100%</span></label>
+          <input type="range" id="size" min="0.7" max="1.4" step="0.01" value="1">
+        </div>
+        <div class="group">
+          <label class="label" for="slide"><span>Slide along the finger</span><span>cuticle ↔ tip</span></label>
+          <input type="range" id="slide" min="-0.25" max="0.25" step="0.01" value="0">
+        </div>
+        <p class="note">Early test: the nails are placed from the hand's tracked points, so they may sit a little off your real nails. Use the sliders above to line them up. "For training" saves the picture without painted nails to this phone; only save photos of people who have said yes, and never upload them to GitHub.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+const LIB_PATH   = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/vision_bundle.mjs";
+const WASM_PATH  = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm";
+const MODEL_PATH = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const $ = (id) => document.getElementById(id);
+
+/* ---------- What the customer can pick ---------- */
+const COLOURS = [
+  ["Lilac", "#b9a2e8"], ["Mint", "#8fe3c5"], ["Classic red", "#c1121f"], ["Hot pink", "#ff5fa2"], ["Nude", "#e3b7a0"],
+  ["Sheer pink", "#f6cfd6"], ["Butter yellow", "#f5e39a"], ["Royal blue", "#16306e"], ["Cobalt", "#1f47c9"], ["Emerald", "#0f7a5a"],
+  ["Plum", "#5a1e46"], ["Chocolate", "#4a2c22"], ["Black", "#15131c"], ["Milky white", "#f4eee8"],
+];
+// the second colour: used for French tips, patterns and details
+const ACCENTS = [["White", "#ffffff"], ["Gold", "#d6aa52"], ["Silver", "#c9ccd6"], ["Black", "#15131c"], ["Soft pink", "#f7b7cf"], ["Lilac", "#b9a2e8"], ["Mint", "#8fe3c5"], ["Red", "#c1121f"]];
+const PENS = [["White", "#ffffff"], ["Gold", "#cfa14a"], ["Black", "#15131c"], ["Purple", "#7653d9"], ["Mint", "#8fe3c5"], ["Pink", "#ff5fa2"], ["Red", "#c1121f"]];
+const DESIGNS = ["Plain", "French tip", "Micro French", "Double French", "V tip", "Ombré", "Aura", "Cat-eye", "Marble", "Swirls", "Polka dots",
+                 "Daisies", "Stars", "Hearts", "Leopard", "Foil flakes", "Glitter fade", "Gems", "Draw your own"];
+const NO_ACCENT = new Set(["Plain", "Cat-eye", "Gems", "Draw your own"]);                                         // designs that don't use the second colour
+const VARIED = new Set(["Marble", "Swirls", "Daisies", "Stars", "Hearts", "Leopard", "Foil flakes", "Glitter fade"]); // hand-painted looks: each nail is a little different
+const SPREADS = ["Every nail", "Index and ring", "Ring finger only"];
+const SHAPES = ["Round", "Square", "Almond", "Coffin", "Stiletto"];
+const FINISHES = ["Glossy", "Matte", "Chrome", "Pearl glaze", "Jelly", "Shimmer"];
+const PEN_SIZES = { Fine: 0.07, Medium: 0.14, Bold: 0.26 }; // pen thickness as a share of the nail's width
+const pick = { colour: COLOURS[0][1], accent: ACCENTS[0][1], design: "Plain", spread: SPREADS[0], shape: "Almond", finish: "Glossy", length: 1.9, size: 1, slide: 0, pen: PENS[0][1], penSize: "Medium" };
+
+// The customer's own drawing: a list of pen strokes, kept on this device so it survives a refresh.
+// Each point is [across, along]: across runs -1 (left edge) to 1 (right edge), along runs 0 (cuticle) to 1 (tip).
+const DRAW_KEY = "nailcare-drawing-v1";
+let strokes = [], history = []; // history holds earlier versions of the drawing, for Undo
+let drawVersion = 0;            // goes up with every change, so the nail artwork knows when to repaint the drawing
+try { strokes = JSON.parse(localStorage.getItem(DRAW_KEY)) || []; } catch (e) {}
+function saveStrokes() { try { localStorage.setItem(DRAW_KEY, JSON.stringify(strokes)); } catch (e) {} }
+
+// Called whenever a choice changes: refresh the drawing pad and, if a photo is being held, repaint it
+function changed() { drawVersion++; drawPad(); refreshTiles(); if (frozen) renderPhoto(); }
+
+function swatchRow(holder, list, key) {
+  // the chosen swatch gets a tick; buttons also tell screen readers which one is chosen
+  const mark = (el) => [...holder.children].forEach((x) => {
+    if (x.tagName === "BUTTON") x.setAttribute("aria-pressed", String(x === el));
+    else if (x === el) x.setAttribute("aria-pressed", "true"); else x.removeAttribute("aria-pressed");
+  });
+  list.forEach(([name, colour]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "swatch"; b.title = name; b.setAttribute("aria-label", name);
+    b.setAttribute("aria-pressed", String(pick[key] === colour));
+    b.style.background = colour;
+    b.addEventListener("click", () => { pick[key] = colour; mark(b); changed(); });
+    holder.appendChild(b);
+  });
+  // any other colour, using the phone's own colour picker
+  const any = document.createElement("label"), input = document.createElement("input");
+  any.className = "swatch any"; any.title = "Any colour"; input.type = "color"; input.value = "#7653d9";
+  input.setAttribute("aria-label", "Pick any colour");
+  input.addEventListener("input", () => { pick[key] = input.value; mark(any); changed(); });
+  any.appendChild(input); holder.appendChild(any);
+}
+function chips(holder, names, key) {
+  names.forEach((n) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = n; b.setAttribute("aria-pressed", String(pick[key] === n));
+    b.addEventListener("click", () => {
+      pick[key] = n; [...holder.children].forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      changed();
+    });
+    holder.appendChild(b);
+  });
+}
+// The design picker: each choice is a little picture of a nail wearing that design in the colours chosen so far
+const tileCanvases = [];
+function tiles(holder) {
+  DESIGNS.forEach((name) => {
+    const b = document.createElement("button"), c = document.createElement("canvas"), s = document.createElement("span");
+    b.type = "button"; b.className = "tile"; b.setAttribute("aria-pressed", String(pick.design === name));
+    c.width = 96; c.height = 132; c.setAttribute("aria-hidden", "true"); s.textContent = name;
+    b.append(c, s);
+    b.addEventListener("click", () => {
+      pick.design = name; [...holder.children].forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      designChanged(); changed();
+    });
+    holder.appendChild(b); tileCanvases.push([name, c]);
+  });
+}
+function designChanged() { // show only the extra choices that this design uses
+  $("designName").textContent = pick.design;
+  $("drawPanel").classList.toggle("hidden", pick.design !== "Draw your own");
+  $("accentGroup").classList.toggle("hidden", NO_ACCENT.has(pick.design));
+  $("spreadGroup").classList.toggle("hidden", pick.design === "Plain");
+}
+swatchRow($("swatches"), COLOURS, "colour");
+swatchRow($("pens"), PENS, "pen");
+swatchRow($("accents"), ACCENTS, "accent");
+tiles($("designs"));
+chips($("spreads"), SPREADS, "spread");
+chips($("penSizes"), Object.keys(PEN_SIZES), "penSize");
+chips($("shapes"), SHAPES, "shape");
+chips($("finishes"), FINISHES, "finish");
+$("length").addEventListener("input", (e) => {
+  pick.length = +e.target.value;
+  const name = pick.length < 1.4 ? "Short" : pick.length < 2.1 ? "Medium" : pick.length < 2.8 ? "Long" : "Extra long";
+  $("lengthName").textContent = name; e.target.setAttribute("aria-valuetext", name);
+  changed();
+});
+$("size").addEventListener("input", (e) => { pick.size = +e.target.value; $("sizeVal").textContent = Math.round(pick.size * 100) + "%"; changed(); });
+$("slide").addEventListener("input", (e) => { pick.slide = +e.target.value; changed(); });
+
+/* ---------- Small 3D maths helpers ---------- */
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const mul = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const len = (a) => Math.hypot(a[0], a[1], a[2]);
+const norm = (a) => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+
+/* ---------- Smoothing, so the nails don't shimmer ----------
+   Steady when the hand is still, quick to follow when it moves. */
+class Smooth {
+  constructor(minCut, beta) { this.minCut = minCut; this.beta = beta; this.x = null; this.dx = 0; this.t = 0; }
+  static a(dt, cut) { const tau = 1 / (2 * Math.PI * cut); return 1 / (1 + tau / dt); }
+  next(x, t) {
+    if (this.x === null) { this.x = x; this.t = t; return x; }
+    const dt = Math.max((t - this.t) / 1000, 1e-3);
+    const ad = Smooth.a(dt, 1);
+    this.dx = ad * ((x - this.x) / dt) + (1 - ad) * this.dx;
+    const a = Smooth.a(dt, this.minCut + this.beta * Math.abs(this.dx));
+    this.x = a * x + (1 - a) * this.x; this.t = t;
+    return this.x;
+  }
+}
+const tracks = {}; // one set of smoothers per hand
+function smoothHand(key, lm, W, H, t) {
+  let tr = tracks[key];
+  if (!tr || t - tr.seen > 400) {
+    tr = tracks[key] = { pts: [], scale: new Smooth(0.4, 0.002) };
+    for (let i = 0; i < 21; i++) tr.pts.push([new Smooth(1.6, 0.02), new Smooth(1.6, 0.02), new Smooth(0.8, 0.01)]);
+  }
+  tr.seen = t;
+  // each point: across, down, and depth (towards the camera is negative), all in screen pixels
+  return { track: tr, P: lm.map((p, i) => [tr.pts[i][0].next(p.x * W, t), tr.pts[i][1].next(p.y * H, t), tr.pts[i][2].next(p.z * W, t)]) };
+}
+
+/* ---------- Where each nail sits, in 3D ----------
+   Sizes come from normal hand proportions, measured in "hand units"
+   (1 unit = the index finger's first bone, knuckle to middle joint, about 4 cm).
+   d = last joint, t = fingertip, bone = that fingertip bone's usual length, width = usual nail width. */
+const FINGERS = [
+  { name: "Thumb",  d: 3,  t: 4,  bone: 0.535, width: 0.28, thumb: true },
+  { name: "Index",  d: 7,  t: 8,  bone: 0.43,  width: 0.22 },
+  { name: "Middle", d: 11, t: 12, bone: 0.455, width: 0.23 },
+  { name: "Ring",   d: 15, t: 16, bone: 0.435, width: 0.215 },
+  { name: "Little", d: 19, t: 20, bone: 0.35,  width: 0.175 },
+];
+// usual bone lengths, in hand units (none of them use the wrist, which is often outside the picture)
+const BONES = [[5, 6, 1], [6, 7, 0.575], [7, 8, 0.43], [9, 10, 1.05], [10, 11, 0.62], [11, 12, 0.455], [13, 14, 0.935], [14, 15, 0.565],
+               [15, 16, 0.435], [17, 18, 0.72], [18, 19, 0.42], [19, 20, 0.35], [1, 2, 0.68], [2, 3, 0.645], [3, 4, 0.535], [5, 17, 1.3]];
+const CUTICLE_AT = 0.66;    // how far from the last joint to the fingertip the nail starts
+const FINGER_DEPTH = 0.11;  // the tracked points sit inside the finger; the nail sits on top
+const C_CURVE = 0.32;       // how much the nail curves down at its sides
+
+function nailsForHand(hand, isRight, t) {
+  const { P, track } = hand;
+  // Screen pixels per hand unit. A bone looks shorter on screen when it tilts towards the camera,
+  // so the bones that look longest for their usual length give the true size of the hand.
+  const ratios = BONES.map(([a, b, usual]) => Math.hypot(P[a][0] - P[b][0], P[a][1] - P[b][1]) / usual).sort((p, q) => p - q);
+  const K = hand.K || track.scale.next(ratios[Math.floor(ratios.length * 0.8)], t);
+  if (!(K > 0)) return [];
+  hand.K0 = K;
+  const knuckles = sub(P[5], P[17]);
+  const v1 = sub(P[5], P[0]), v2 = sub(P[17], P[0]);
+  const backN = norm(isRight ? cross(v2, v1) : cross(v1, v2)); // which way the back of the hand faces
+
+  return FINGERS.map((f, idx) => {
+    const bone = sub(P[f.t], P[f.d]), l2 = Math.hypot(bone[0], bone[1]);
+    if (l2 < 2) return null;
+    // Which way the fingertip points. Tilt towards or away from the camera comes from the depth reading,
+    // double-checked against how short the bone looks on screen.
+    const flat = Math.min(l2 / (len(bone) || 1), clamp(l2 / (K * f.bone) + 0.08, 0.35, 1));
+    const u = [bone[0] / l2 * flat, bone[1] / l2 * flat, Math.sign(bone[2] || 1) * Math.sqrt(1 - flat * flat)];
+    // Which way the nail faces
+    let n0;
+    if (f.thumb) {
+      let away = sub(P[2], P[5]);
+      away = norm(sub(away, mul(backN, dot(away, backN))));
+      n0 = norm(add(mul(backN, 0.85), mul(away, 0.45))); // the thumbnail faces up and a little outwards
+    } else {
+      n0 = isRight ? cross(u, knuckles) : cross(knuckles, u); // fingers hinge along the knuckle line
+    }
+    const lat = norm(cross(u, n0)), n = norm(cross(lat, u));
+    const W = f.width * K * pick.size / 2;   // half the nail's width, in pixels
+    const Ln = W * 2 * pick.length;          // nail length, in pixels
+    const cut = CUTICLE_AT + pick.slide, lift = FINGER_DEPTH * K;
+    const bx = P[f.d][0] + bone[0] * cut + lift * n[0], by = P[f.d][1] + bone[1] * cut + lift * n[1];
+    const map = (s, tt) => {
+      const h = -C_CURVE * tt * tt / W;
+      return [bx + s * u[0] + tt * lat[0] + h * n[0], by + s * u[1] + tt * lat[1] + h * n[1]];
+    };
+    // B, U, L, N: where the nail starts, and its length, width and facing directions on screen. J: the last finger joint.
+    return { name: f.name, idx, map, W, Ln, n, facing: -n[2], B: [bx, by], U: [u[0], u[1]], L: [lat[0], lat[1]], N: [n[0], n[1]], J: [P[f.d][0], P[f.d][1]] };
+  }).filter(Boolean);
+}
+
+/* ---------- Nail shapes ---------- */
+function halfWidth(s, W, Ln, shape) {
+  const b = Math.min(0.9 * W, Ln * 0.45);
+  const base = s < b ? Math.sqrt(Math.max(0, 1 - ((b - s) / b) ** 2)) : 1; // rounded cuticle end
+  const s1 = shape === "Almond" ? Math.max(b, Ln * 0.38) : b;
+  const x = clamp((s - s1) / (Ln - s1), 0, 1);
+  let tip = 1;
+  if (shape === "Round") { const e = Math.min(0.85 * W, Ln - b), y = (s - (Ln - e)) / e; tip = y > 0 ? Math.sqrt(Math.max(0, 1 - y * y)) : 1; }
+  else if (shape === "Square") { const e = 0.2 * W, y = (s - (Ln - e)) / e; tip = y > 0 ? 1 - 0.12 * y * y : 1; }
+  else if (shape === "Almond") tip = Math.pow(Math.max(0, 1 - Math.pow(x, 1.7)), 0.7);
+  else if (shape === "Stiletto") tip = Math.pow(1 - x, 0.85);
+  else if (shape === "Coffin") tip = 1 - 0.48 * x;
+  return W * Math.min(base, tip);
+}
+function outline(W, Ln, shape, N = 18) {
+  const left = [], right = [];
+  for (let i = 0; i <= N; i++) {
+    const s = Ln * (0.5 - 0.5 * Math.cos(Math.PI * i / N)), hw = halfWidth(s, W, Ln, shape);
+    left.push([s, -hw]); right.push([s, hw]);
+  }
+  return left.concat(right.reverse());
+}
+function trace(ctx, pts) {
+  ctx.beginPath();
+  pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+  ctx.closePath();
+}
+
+/* ---------- The drawing pad: draw once, and it goes on every nail ---------- */
+const pad = $("pad"), pctx = pad.getContext("2d");
+const PAD = { cx: 180, base: 543, W: 150, Ln: 525 }; // the big nail on the pad, in pad pixels
+function paintStrokes(c, place, width) { // draws the strokes using place([across, along]) -> [x, y]
+  c.lineCap = "round"; c.lineJoin = "round";
+  for (const st of strokes) {
+    const pts = st.pts.map(place), w = Math.max(1, PEN_SIZES[st.size] * width);
+    c.beginPath();
+    if (pts.length === 1) { c.arc(pts[0][0], pts[0][1], w / 2, 0, Math.PI * 2); c.fillStyle = st.colour; c.fill(); continue; }
+    pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]));
+    c.lineWidth = w; c.strokeStyle = st.colour; c.stroke();
+  }
+}
+function drawPad() {
+  pctx.clearRect(0, 0, pad.width, pad.height);
+  const pts = outline(PAD.W, PAD.Ln, pick.shape).map(([s, t]) => [PAD.cx + t, PAD.base - s]);
+  pctx.save();
+  trace(pctx, pts); pctx.fillStyle = pick.colour; pctx.fill();
+  trace(pctx, pts); pctx.clip();
+  paintStrokes(pctx, ([u, v]) => [PAD.cx + u * PAD.W, PAD.base - v * PAD.Ln], PAD.W);
+  pctx.restore();
+  trace(pctx, pts); pctx.lineWidth = 3; pctx.strokeStyle = "rgba(42,36,64,.35)"; pctx.stroke();
+}
+let penDown = null;
+function padPoint(e) {
+  const r = pad.getBoundingClientRect(), x = (e.clientX - r.left) * pad.width / r.width, y = (e.clientY - r.top) * pad.height / r.height;
+  return [(x - PAD.cx) / PAD.W, (PAD.base - y) / PAD.Ln];
+}
+pad.addEventListener("pointerdown", (e) => {
+  history.push(strokes.slice()); if (history.length > 50) history.shift();
+  penDown = { colour: pick.pen, size: pick.penSize, pts: [padPoint(e)] };
+  strokes.push(penDown); pad.setPointerCapture(e.pointerId); e.preventDefault(); changed();
+});
+pad.addEventListener("pointermove", (e) => {
+  if (!penDown) return;
+  const p = padPoint(e), last = penDown.pts[penDown.pts.length - 1];
+  if (Math.hypot(p[0] - last[0], (p[1] - last[1]) * 3.5) < 0.02) return; // skip tiny moves
+  penDown.pts.push(p); e.preventDefault(); changed();
+});
+const penUp = () => { if (penDown) { penDown = null; saveStrokes(); } };
+pad.addEventListener("pointerup", penUp); pad.addEventListener("pointercancel", penUp);
+$("undoBtn").addEventListener("click", () => {
+  if (!history.length) return;
+  strokes = history.pop(); saveStrokes(); changed();
+});
+$("clearBtn").addEventListener("click", () => {
+  if (!strokes.length) return;
+  history.push(strokes.slice()); strokes = []; saveStrokes(); changed();
+  toast("Drawing cleared. Tap Undo to bring it back.");
+});
+
+/* ---------- Colour helpers ---------- */
+const WHITE = [255, 255, 255], BLACK = [0, 0, 0], GOLD = [214, 170, 82];
+const rgbOf = (hex) => { const v = parseInt(hex.slice(1), 16); return [v >> 16, (v >> 8) & 255, v & 255]; };
+const mixc = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+const css = (c, a = 1) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${a})`;
+// Repeatable "random" numbers, so a marble or glitter nail looks the same every frame instead of flickering
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const hashStr = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+// gradient stops that are always in order and inside 0–1, wherever the light happens to sit
+function stops(g, list) { let last = 0; for (const [p, c] of list) { last = clamp(Math.max(p, last), 0, 1); g.addColorStop(last, c); } }
+
+/* ---------- The artwork for one nail ----------
+   Each design is painted once, in detail, onto a small flat picture of a nail (tip at the top).
+   That picture is kept and re-used every frame, so rich designs cost almost nothing while the camera runs. */
+const TEX_W = 144, TEX_PAD = 3;
+const texCache = new Map();
+
+// which design a given finger wears (0 thumb, 1 index, 2 middle, 3 ring, 4 little)
+function designFor(idx) {
+  if (pick.design === "Plain") return "Plain";
+  if (pick.spread === "Ring finger only") return idx === 3 ? pick.design : "Plain";
+  if (pick.spread === "Index and ring") return idx === 1 || idx === 3 ? pick.design : "Plain";
+  return pick.design;
+}
+// where the three crystals of the "Gems" design sit: [across, along, size as a share of the nail's half-width]
+function gemSpots(W, Ln) { const v0 = 0.72 * W / Ln, dv = W / Ln; return [[0, v0, 0.3], [0, v0 + 0.6 * dv, 0.2], [0, v0 + 1.02 * dv, 0.13]]; }
+
+function nailTexture(design, idx, length) {
+  const variant = VARIED.has(design) ? idx : 0; // hand-painted looks differ a little from nail to nail
+  const key = [design, variant, pick.colour, pick.accent, pick.shape, length.toFixed(2), pick.finish, design === "Draw your own" ? drawVersion : 0].join("|");
+  let tex = texCache.get(key);
+  if (!tex) {
+    if (texCache.size > 90) texCache.clear();
+    tex = buildTexture(design, variant, length);
+    texCache.set(key, tex);
+  }
+  return tex;
+}
+
+function buildTexture(design, variant, length) {
+  const Wt = (TEX_W - 2 * TEX_PAD) / 2, Lt = Math.round(Wt * 2 * length), H = Lt + 2 * TEX_PAD;
+  const c = document.createElement("canvas"); c.width = TEX_W; c.height = H;
+  const g = c.getContext("2d");
+  const X = (u) => TEX_PAD + Wt + u * Wt, Y = (v) => TEX_PAD + Lt - v * Lt;  // u: -1 left edge … 1 right edge; v: 0 cuticle … 1 tip
+  const hw = (v) => halfWidth(clamp(v, 0, 1) * Lt, Wt, Lt, pick.shape) / Wt;   // how wide the nail is at that height (0–1)
+  const shapeOn = (k, shift) => trace(k, outline(Wt, Lt, pick.shape, 40).map(([s, t]) => [TEX_PAD + Wt + t, TEX_PAD + Lt - s + shift]));
+  const base = rgbOf(pick.colour), acc = rgbOf(pick.accent), finish = pick.finish;
+  const rand = rng(hashStr(design) + variant * 977 + 11);
+  const dot = (x, y, r, col) => { g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fillStyle = col; g.fill(); };
+  const fillAll = (style) => { g.fillStyle = style; g.fillRect(0, 0, TEX_W, H); };
+  // a smooth line through a list of points
+  const curve = (pts) => {
+    g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length - 1; i++) g.quadraticCurveTo(pts[i][0], pts[i][1], (pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2);
+    g.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+  };
+  // a band that hugs the tip edge, from d0 to d1 pixels in from the edge (used for fine French lines)
+  const tipBand = (d0, d1, colour) => {
+    const t = document.createElement("canvas"); t.width = TEX_W; t.height = H;
+    const k = t.getContext("2d");
+    k.fillStyle = colour; shapeOn(k, d0); k.fill();
+    k.globalCompositeOperation = "destination-out"; shapeOn(k, d1); k.fill();
+    const fade = k.createLinearGradient(0, TEX_PAD + d0, 0, TEX_PAD + d0 + Math.min(1.5 * Wt, 0.45 * Lt)); // the line thins out down the sides, like a painted smile line
+    fade.addColorStop(0, "#000"); fade.addColorStop(0.45, "#000"); fade.addColorStop(1, "rgba(0,0,0,0)");
+    k.globalCompositeOperation = "destination-in"; k.fillStyle = fade; k.fillRect(0, 0, TEX_W, H);
+    g.drawImage(t, 0, 0);
+  };
+  // spots spread evenly down the nail, alternating sides, for flowers, hearts and stars
+  const spread = (count, reach) => Array.from({ length: count }, (_, k) => {
+    const v = 0.14 + 0.74 * (k + 0.25 + rand() * 0.5) / count, u = (k % 2 ? 1 : -1) * (0.12 + rand() * reach) * hw(v);
+    return [X(u), Y(v)];
+  });
+
+  /* base coat */
+  let body = base;
+  if (finish === "Chrome") body = mixc(base, [196, 198, 210], 0.3);
+  if (finish === "Pearl glaze") body = mixc(base, WHITE, 0.2);
+  if (finish === "Matte") body = mixc(base, [236, 232, 236], 0.07);
+  fillAll(css(body));
+
+  /* the design */
+  if (design === "French tip") {
+    const tipD = Math.min(0.95 * Wt, Lt * 0.3);
+    g.beginPath();
+    for (let i = 0; i <= 24; i++) { const u = -1.2 + 2.4 * i / 24, y = TEX_PAD + tipD * (0.62 + 0.6 * u * u); i ? g.lineTo(X(u), y) : g.moveTo(X(u), y); }
+    g.lineTo(X(1.2), -6); g.lineTo(X(-1.2), -6); g.closePath(); g.fillStyle = css(acc); g.fill();
+  } else if (design === "Micro French") {
+    tipBand(0, 0.2 * Wt, css(acc));
+  } else if (design === "Double French") {
+    tipBand(0, 0.2 * Wt, css(acc)); tipBand(0.42 * Wt, 0.54 * Wt, css(acc));
+  } else if (design === "V tip") {
+    const a = 0.2 * Wt, b = Math.min(1.05 * Wt, Lt * 0.34);
+    g.beginPath(); g.moveTo(X(-1.2), TEX_PAD + a - 0.2 * b); g.lineTo(X(0), TEX_PAD + a + b); g.lineTo(X(1.2), TEX_PAD + a - 0.2 * b);
+    g.lineTo(X(1.2), -6); g.lineTo(X(-1.2), -6); g.closePath(); g.fillStyle = css(acc); g.fill();
+  } else if (design === "Ombré") {
+    const og = g.createLinearGradient(0, Y(0.16), 0, Y(0.94));
+    og.addColorStop(0, css(acc, 0)); og.addColorStop(0.5, css(acc, 0.7)); og.addColorStop(1, css(acc, 1));
+    fillAll(og);
+  } else if (design === "Aura") {
+    g.save(); g.translate(X(0), Y(0.5)); g.scale(1, Math.max(1, Lt / (2 * Wt) * 0.82));
+    const ag = g.createRadialGradient(0, 0, 0, 0, 0, Wt * 0.98);
+    ag.addColorStop(0, css(acc, 0.95)); ag.addColorStop(0.42, css(acc, 0.62)); ag.addColorStop(1, css(acc, 0));
+    g.fillStyle = ag; g.fillRect(-Wt * 2, -Lt, Wt * 4, Lt * 2); g.restore();
+  } else if (design === "Cat-eye") {
+    // velvet depth: darker towards the edges, with fine shimmer that the moving band of light picks up
+    const vg = g.createRadialGradient(X(0), Y(0.5), Wt * 0.2, X(0), Y(0.5), Math.max(Lt * 0.62, Wt * 1.2));
+    vg.addColorStop(0, css(body, 0)); vg.addColorStop(1, css(mixc(body, BLACK, 0.6), 0.62));
+    fillAll(vg);
+    for (let i = 0, nDots = Math.round(1.6 * H); i < nDots; i++) dot(rand() * TEX_W, rand() * H, 0.4 + rand() * 0.8, css(mixc(body, WHITE, 0.55 + rand() * 0.4), 0.16 + rand() * 0.4));
+  } else if (design === "Marble") {
+    for (let i = 0; i < 5; i++) { // soft clouds first
+      const x = rand() * TEX_W, y = rand() * H, r = Wt * (0.5 + rand() * 0.8), cg = g.createRadialGradient(x, y, 0, x, y, r);
+      cg.addColorStop(0, css(acc, 0.24)); cg.addColorStop(1, css(acc, 0)); fillAll(cg);
+    }
+    const veins = Math.max(2, Math.round(Lt / (Wt * 1.1)));
+    let first = null;
+    for (let k = 0; k < veins; k++) { // then veins wandering across the nail
+      const dir = rand() < 0.5 ? 1 : -1, pts = [];
+      let y = TEX_PAD + Lt * ((k + 0.2 + rand() * 0.6) / veins) - dir * Wt * 0.5;
+      for (let i = 0; i <= 8; i++) { pts.push([X(-1.25 + 2.5 * i / 8), y]); y += dir * Wt * (0.02 + rand() * 0.3) + (rand() - 0.5) * Wt * 0.22; }
+      if (!first) first = pts;
+      g.lineCap = "round"; g.lineJoin = "round";
+      g.shadowColor = css(acc, 0.9); g.shadowBlur = 7; g.strokeStyle = css(acc, 0.32); g.lineWidth = 3.4; curve(pts); g.stroke();
+      g.shadowBlur = 0; g.strokeStyle = css(acc, 0.9); g.lineWidth = 0.7 + rand() * 0.9; curve(pts); g.stroke();
+      const at = 2 + Math.floor(rand() * 4), twig = [pts[at], [pts[at][0] + Wt * 0.25, pts[at][1] - dir * Wt * 0.3], [pts[at][0] + Wt * 0.6, pts[at][1] - dir * Wt * 0.38]];
+      g.strokeStyle = css(acc, 0.7); g.lineWidth = 0.7; curve(twig); g.stroke();
+    }
+    g.strokeStyle = css(GOLD, 0.95); g.lineWidth = 1; curve(first.map(([x, y], i) => [x, y + 3 + Math.sin(i * 1.7) * 2.5])); g.stroke(); // one fine gold vein
+  } else if (design === "Swirls") {
+    const bands = Math.max(2, Math.round(Lt / (Wt * 1.05)));
+    g.lineCap = "round";
+    for (let k = 0; k < bands; k++) {
+      const y = Y((k + 0.5) / bands) + (rand() - 0.5) * Wt * 0.2, flip = k % 2 ? -1 : 1;
+      const path = (dy) => { g.beginPath(); g.moveTo(X(-1.3), y + dy + flip * Wt * 0.2); g.bezierCurveTo(X(-0.35), y + dy - flip * Wt * 0.75, X(0.25), y + dy + flip * Wt * 0.6, X(1.3), y + dy - flip * Wt * 0.3); };
+      g.strokeStyle = css(acc); g.lineWidth = Wt * 0.3; path(0); g.stroke();
+      g.strokeStyle = css(mixc(acc, body, 0.5)); g.lineWidth = Wt * 0.06; path(Wt * 0.27); g.stroke();
+    }
+  } else if (design === "Polka dots") {
+    const gap = Wt * 0.5;
+    for (let row = 0, y = TEX_PAD + gap * 0.6; y < H; row++, y += gap * 0.9)
+      for (let x = X(0) - gap * 4 + (row % 2 ? gap / 2 : 0); x < TEX_W + gap; x += gap) dot(x, y, Wt * 0.095, css(acc));
+  } else if (design === "Daisies") {
+    const centre = acc[0] > 190 && acc[1] > 140 && acc[2] < 120 ? WHITE : GOLD; // gold middles, unless the petals are gold
+    for (const [x, y] of spread(Math.max(2, Math.round(Lt / (Wt * 1.15))), 0.5)) {
+      const r = Wt * (0.3 + rand() * 0.14), turn = rand() * 6.28;
+      for (let i = 0; i < 6; i++) { g.save(); g.translate(x, y); g.rotate(turn + i * Math.PI / 3); g.beginPath(); g.ellipse(0, -r * 0.6, r * 0.3, r * 0.5, 0, 0, 6.2832); g.fillStyle = css(acc); g.fill(); g.restore(); }
+      dot(x, y, r * 0.3, css(centre)); dot(x - r * 0.08, y - r * 0.08, r * 0.12, css(mixc(centre, WHITE, 0.6), 0.8));
+    }
+    for (let i = 0; i < 5; i++) { const v = 0.1 + rand() * 0.8; dot(X((rand() * 2 - 1) * 0.8 * hw(v)), Y(v), Wt * 0.035, css(acc, 0.9)); }
+  } else if (design === "Stars") {
+    const star = (x, y, r) => { g.beginPath(); g.moveTo(x, y - r); g.quadraticCurveTo(x, y, x + r * 0.72, y); g.quadraticCurveTo(x, y, x, y + r); g.quadraticCurveTo(x, y, x - r * 0.72, y); g.quadraticCurveTo(x, y, x, y - r); g.fillStyle = css(acc); g.fill(); };
+    for (const [x, y] of spread(Math.max(2, Math.round(Lt / (Wt * 1.2))), 0.5)) star(x, y, Wt * (0.3 + rand() * 0.16));
+    for (let i = 0, small = Math.round(Lt / Wt * 3); i < small; i++) { const v = 0.08 + rand() * 0.86, x = X((rand() * 2 - 1) * 0.85 * hw(v)); rand() < 0.5 ? star(x, Y(v), Wt * (0.08 + rand() * 0.07)) : dot(x, Y(v), Wt * 0.03, css(acc)); }
+  } else if (design === "Hearts") {
+    for (const [x, y] of spread(Math.max(2, Math.round(Lt / (Wt * 1.1))), 0.45)) {
+      const r = Wt * (0.2 + rand() * 0.12);
+      g.save(); g.translate(x, y); g.rotate((rand() - 0.5) * 0.8);
+      g.beginPath(); g.moveTo(0, r * 0.95); g.bezierCurveTo(-r * 1.55, -r * 0.15, -r * 0.7, -r * 1.2, 0, -r * 0.4); g.bezierCurveTo(r * 0.7, -r * 1.2, r * 1.55, -r * 0.15, 0, r * 0.95);
+      g.fillStyle = css(acc); g.fill(); g.restore();
+    }
+  } else if (design === "Leopard") {
+    const gap = Wt * 0.62;
+    g.lineCap = "round";
+    for (let row = 0, y = TEX_PAD + gap * 0.5; y < H; row++, y += gap * 0.85)
+      for (let x = X(0) - gap * 3 + (row % 2 ? gap / 2 : 0); x < TEX_W + gap; x += gap) {
+        const cx = x + (rand() - 0.5) * gap * 0.4, cy = y + (rand() - 0.5) * gap * 0.4, r = Wt * (0.1 + rand() * 0.07), turn = rand() * 6.28;
+        g.beginPath(); g.ellipse(cx, cy, r, r * 0.72, turn, 0, 6.2832); g.fillStyle = css(mixc(body, acc, 0.5)); g.fill();
+        g.strokeStyle = css(acc); g.lineWidth = Wt * 0.065;
+        for (let k = 0, a = turn; k < 3; k++) { const span = 0.9 + rand() * 0.9; g.beginPath(); g.ellipse(cx, cy, r * 1.5, r * 1.15, turn, a, a + span); g.stroke(); a += span + 0.45 + rand() * 0.5; }
+      }
+  } else if (design === "Foil flakes") {
+    const light = mixc(acc, WHITE, 0.6), dark = mixc(acc, [80, 66, 50], 0.45);
+    for (let i = 0, count = Math.round(8 + Lt / Wt * 7); i < count; i++) {
+      const v = 0.05 + rand() * 0.9, x = X((rand() * 2 - 1) * hw(v)), y = Y(v), r = Wt * (0.07 + rand() * 0.16), corners = 3 + Math.floor(rand() * 3), turn = rand() * 6.28;
+      g.beginPath();
+      for (let k = 0; k < corners; k++) { const a = turn + k * 6.2832 / corners + (rand() - 0.5) * 0.7, rr = r * (0.55 + rand() * 0.6); k ? g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr) : g.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+      g.closePath();
+      const fg = g.createLinearGradient(x - r, y - r, x + r, y + r); fg.addColorStop(0, css(light)); fg.addColorStop(0.55, css(acc)); fg.addColorStop(1, css(dark));
+      g.fillStyle = fg; g.fill();
+    }
+  } else if (design === "Glitter fade") {
+    const reachV = Math.min(0.78, 2.6 * Wt / Lt), haze = g.createLinearGradient(0, Y(1), 0, Y(1 - reachV)); // glitter packed at the tip, thinning towards the cuticle
+    haze.addColorStop(0, css(acc, 0.7)); haze.addColorStop(0.5, css(acc, 0.3)); haze.addColorStop(1, css(acc, 0)); fillAll(haze);
+    for (let i = 0, count = Math.round(34 * reachV * Lt); i < count; i++) {
+      const v = 1 - Math.pow(rand(), 2.1) * reachV * 1.15, tone = rand();
+      dot(X(rand() * 2.1 - 1.05), Y(v), 0.6 + rand() * rand() * 3.1, css(tone < 0.3 ? mixc(acc, BLACK, 0.3) : mixc(acc, WHITE, (tone - 0.3) * 1.3), 0.6 + rand() * 0.4));
+    }
+    for (let i = 0; i < 70; i++) { const v = 1 - Math.pow(rand(), 2) * reachV * 0.8; dot(X(rand() * 2 - 1), Y(v), 0.7 + rand() * 1.3, "rgba(255,255,255,.95)"); }
+  } else if (design === "Gems") {
+    for (const [u, v, size] of gemSpots(Wt, Lt)) {
+      const x = X(u), y = Y(v), r = size * Wt;
+      dot(x + r * 0.12, y + r * 0.2, r * 1.08, "rgba(20,10,30,.35)"); // its little shadow
+      const gg = g.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r);
+      gg.addColorStop(0, "#ffffff"); gg.addColorStop(0.55, "#dfe8f7"); gg.addColorStop(1, "#98a5c6");
+      dot(x, y, r, gg);
+      for (let i = 0; i < 8; i++) { // facets
+        const a0 = i * Math.PI / 4, a1 = a0 + Math.PI / 4;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a0) * r, y + Math.sin(a0) * r); g.lineTo(x + Math.cos(a1) * r, y + Math.sin(a1) * r); g.closePath();
+        g.fillStyle = i % 2 ? "rgba(255,255,255,.5)" : "rgba(90,110,165,.24)"; g.fill();
+      }
+      g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + Math.PI / 8; i ? g.lineTo(x + Math.cos(a) * r * 0.5, y + Math.sin(a) * r * 0.5) : g.moveTo(x + Math.cos(a) * r * 0.5, y + Math.sin(a) * r * 0.5); }
+      g.closePath(); g.fillStyle = "rgba(255,255,255,.6)"; g.fill(); g.strokeStyle = "rgba(120,135,178,.5)"; g.lineWidth = 0.6; g.stroke();
+      g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.strokeStyle = "rgba(70,80,112,.55)"; g.lineWidth = 0.8; g.stroke();
+    }
+  } else if (design === "Draw your own") {
+    paintStrokes(g, ([u, v]) => [X(u), Y(v)], Wt); // the customer's drawing
+  }
+
+  /* what the finish adds to the artwork itself (the moving shine is added live, in paintNail) */
+  if (finish === "Shimmer") {
+    for (let i = 0, count = Math.round(1.5 * H); i < count; i++) dot(rand() * TEX_W, rand() * H, 0.35 + rand() * 0.9, css(mixc(body, WHITE, 0.5 + rand() * 0.5), 0.25 + rand() * 0.55));
+  } else if (finish === "Pearl glaze") {
+    const pg = g.createLinearGradient(0, H, TEX_W, 0);
+    pg.addColorStop(0, "rgba(255,170,215,.16)"); pg.addColorStop(0.5, "rgba(170,230,255,.16)"); pg.addColorStop(1, "rgba(255,240,175,.16)");
+    fillAll(pg);
+  } else if (finish === "Jelly") { // see-through polish looks deeper at its edges
+    g.save(); shapeOn(g, 0); g.clip();
+    g.shadowColor = css(mixc(body, BLACK, 0.4), 0.9); g.shadowBlur = Wt * 0.45; g.strokeStyle = css(mixc(body, BLACK, 0.4), 0.5); g.lineWidth = 3;
+    shapeOn(g, 0); g.stroke(); g.restore();
+  }
+
+  /* cut it to the nail's shape, with soft edges */
+  g.globalCompositeOperation = "destination-in"; g.shadowBlur = 0; g.fillStyle = "#000"; shapeOn(g, 0); g.fill();
+  return c;
+}
+
+/* ---------- Reading the room's light ----------
+   A tiny copy of the camera picture, checked a few times a second. It tells us how bright the room is,
+   what colour its light is, and whether one finger sits in shadow, so the nails are lit like the hand they're on. */
+const sceneC = document.createElement("canvas"); sceneC.width = 48; sceneC.height = 36;
+const sctx = sceneC.getContext("2d", { willReadFrequently: true });
+const scene = { ready: false, data: null, w: 1, h: 1, dim: 1, tint: [255, 255, 255] };
+function readScene(src, w, h) {
+  let d;
+  try { sctx.drawImage(src, 0, 0, 48, 36); d = sctx.getImageData(0, 0, 48, 36).data; } catch (e) { return; }
+  let r = 0, g = 0, b = 0;
+  for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+  const count = d.length / 4, top = Math.max(r, g, b, 1);
+  scene.data = d; scene.w = w; scene.h = h; scene.ready = true;
+  scene.dim = clamp((0.2126 * r + 0.7152 * g + 0.0722 * b) / count / 255 / 0.3, 0.6, 1); // only a dark room dims the nails
+  scene.tint = [r / top * 255, g / top * 255, b / top * 255];
+}
+function sceneLum(x, y) {
+  if (!scene.ready) return 0;
+  const i = (clamp(Math.floor(y / scene.h * 36), 0, 35) * 48 + clamp(Math.floor(x / scene.w * 48), 0, 47)) * 4, d = scene.data;
+  return (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+}
+
+/* ---------- Painting one nail ----------
+   1. a soft shadow where the nail meets the skin
+   2. the artwork, bent over the nail's curve
+   3. light and shade that move as the hand tilts: shine, chrome reflections, cat-eye band, sparkles
+   4. the finished nail is stamped onto the camera picture */
+const layer = document.createElement("canvas"), lctx = layer.getContext("2d"); // a scratch sheet each nail is built on
+function twinkle(c, x, y, r, a) {
+  c.globalAlpha = a; c.beginPath(); c.moveTo(x, y - r);
+  c.quadraticCurveTo(x, y, x + r, y); c.quadraticCurveTo(x, y, x, y + r); c.quadraticCurveTo(x, y, x - r, y); c.quadraticCurveTo(x, y, x, y - r);
+  c.fillStyle = "#fff"; c.fill(); c.globalAlpha = 1;
+}
+function paintNail(ctx, nail, opts = {}) {
+  const alpha = clamp((nail.facing - 0.05) / 0.25, 0, 1); // fades out as the nail turns away from the camera
+  if (alpha <= 0) return false;
+  const { map, W, Ln, n, B, U, L, N, idx } = nail, finish = pick.finish, shape = pick.shape;
+  const design = opts.design || designFor(idx), tex = nailTexture(design, idx, opts.length || pick.length);
+  const cw = ctx.canvas.width, ch = ctx.canvas.height;
+  if (layer.width < cw || layer.height < ch) { layer.width = Math.max(layer.width, cw); layer.height = Math.max(layer.height, ch); }
+  const pts = outline(W, Ln, shape).map(([s, t]) => map(s, t));
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const p of pts) { if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; }
+  x0 = Math.max(0, Math.floor(x0 - 3)); y0 = Math.max(0, Math.floor(y0 - 3)); x1 = Math.min(cw, Math.ceil(x1 + 3)); y1 = Math.min(ch, Math.ceil(y1 + 3));
+  const bw = x1 - x0, bh = y1 - y0;
+  if (bw < 2 || bh < 2) return false; // off the edge of the picture
+
+  /* 1. shadow on the skin around the cuticle half of the nail */
+  if (!opts.preview) {
+    const mid = Math.floor(pts.length / 4); // pts run up the left side (cuticle to tip), then back down the right
+    ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.moveTo(pts[mid][0], pts[mid][1]);
+    for (let i = mid - 1; i >= 0; i--) ctx.lineTo(pts[i][0], pts[i][1]);
+    for (let i = pts.length - 1; i >= pts.length - 1 - mid; i--) ctx.lineTo(pts[i][0], pts[i][1]);
+    for (const [w, a] of [[0.52, 0.05], [0.3, 0.07], [0.14, 0.1]]) { ctx.lineWidth = W * w; ctx.strokeStyle = `rgba(38,14,20,${a * alpha})`; ctx.stroke(); }
+    ctx.restore();
+  }
+
+  /* 2. the artwork, in eight strips so it bends with the nail's curve */
+  const l = lctx;
+  l.setTransform(1, 0, 0, 1, 0, 0); l.globalCompositeOperation = "source-over"; l.globalAlpha = 1;
+  l.clearRect(x0, y0, bw, bh);
+  const STRIPS = 8, ax = 2 * W / (TEX_W - 2 * TEX_PAD), LnT = tex.height - 2 * TEX_PAD, ay = Ln / LnT, s0 = (TEX_PAD + LnT) * ay, tStart = -W - TEX_PAD * ax;
+  for (let j = 0; j < STRIPS; j++) {
+    const t0 = -W + 2 * W * j / STRIPS, t1 = t0 + 2 * W / STRIPS;
+    const h0 = -C_CURVE * t0 * t0 / W, h1 = -C_CURVE * t1 * t1 / W, k = (h1 - h0) / (t1 - t0), lift = h0 - k * t0;
+    const lx = L[0] + k * N[0], ly = L[1] + k * N[1];
+    l.setTransform(ax * lx, ax * ly, -ay * U[0], -ay * U[1], B[0] + s0 * U[0] + tStart * lx + lift * N[0], B[1] + s0 * U[1] + tStart * ly + lift * N[1]);
+    const sx0 = j === 0 ? 0 : TEX_PAD + (t0 + W) / ax - 0.6, sx1 = j === STRIPS - 1 ? TEX_W : TEX_PAD + (t1 + W) / ax + 0.6;
+    l.drawImage(tex, sx0, 0, sx1 - sx0, tex.height, sx0, 0, sx1 - sx0, tex.height);
+  }
+  l.setTransform(1, 0, 0, 1, 0, 0);
+
+  /* 3. light and shade, kept inside the nail */
+  l.globalCompositeOperation = "source-atop";
+  const A = map(Ln * 0.5, -W), Bp = map(Ln * 0.5, W), C0 = map(0, 0), C1 = map(Ln, 0);
+  const shine = clamp(0.43 + n[0] * 0.9, 0.18, 0.82); // where the light sits across the nail; it slides as the nail tilts
+  const shade = (style) => { l.fillStyle = style; l.fillRect(x0, y0, bw, bh); };
+  const across = (list) => { const g = l.createLinearGradient(A[0], A[1], Bp[0], Bp[1]); stops(g, list); shade(g); };
+  const along = (list) => { const g = l.createLinearGradient(C0[0], C0[1], C1[0], C1[1]); stops(g, list); shade(g); };
+  const matte = finish === "Matte", chrome = finish === "Chrome";
+
+  if (chrome) { // a mirror: dark and bright bands with a sharp line between them, plus a faint reflection of the room itself
+    const base = rgbOf(pick.colour), dk = css(mixc(base, BLACK, 0.78), 0.62), md = css(mixc(base, WHITE, 0.3), 0.3), hi = css(mixc(base, WHITE, 0.92), 0.85);
+    if (scene.ready && !opts.preview) { l.globalAlpha = 0.3; l.drawImage(sceneC, x0, y0, bw, bh); l.globalAlpha = 1; }
+    across([[0, dk], [shine - 0.3, md], [shine - 0.07, hi], [shine + 0.03, hi], [shine + 0.07, dk], [shine + 0.36, md], [1, dk]]);
+    along([[0, "rgba(0,0,0,.3)"], [0.2, "rgba(0,0,0,0)"], [0.7, "rgba(255,255,255,0)"], [1, "rgba(255,255,255,.28)"]]);
+  } else { // the nail's curve: darker at the sides, lighter where the light catches it, a little shadow at the cuticle
+    const edge = matte ? 0.26 : 0.36;
+    across([[0, `rgba(0,0,0,${edge})`], [shine - 0.32, "rgba(0,0,0,.07)"], [shine, `rgba(255,255,255,${matte ? 0.07 : 0.13})`], [shine + 0.32, "rgba(0,0,0,.07)"], [1, `rgba(0,0,0,${edge})`]]);
+    along([[0, "rgba(0,0,0,.26)"], [0.15, "rgba(0,0,0,.05)"], [0.32, "rgba(0,0,0,0)"], [0.84, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,.12)"]]);
+    if (matte) shade("rgba(255,255,255,.05)");
+  }
+  if (finish === "Pearl glaze") // a pink-to-blue-to-gold sheen that travels with the light
+    across([[shine - 0.5, "rgba(255,160,215,0)"], [shine - 0.24, "rgba(255,160,215,.2)"], [shine, "rgba(170,235,255,.22)"], [shine + 0.24, "rgba(255,238,165,.17)"], [shine + 0.5, "rgba(255,238,165,0)"]]);
+
+  if (design === "Cat-eye") { // the magnetic band: a soft diagonal flash that slides as the hand tilts
+    const d = Ln * 0.22, p0 = map(Ln * 0.5 - d, -W), p1 = map(Ln * 0.5 + d, W), glow = mixc(rgbOf(pick.colour), WHITE, 0.74);
+    const g = l.createLinearGradient(p0[0], p0[1], p1[0], p1[1]);
+    stops(g, [[shine - 0.42, css(glow, 0)], [shine - 0.2, css(glow, 0.2)], [shine - 0.05, css(glow, 0.62)], [shine + 0.05, css(glow, 0.62)], [shine + 0.2, css(glow, 0.2)], [shine + 0.42, css(glow, 0)]]);
+    shade(g);
+  }
+
+  { // the shine itself: a soft glow with a crisp streak inside it, like a window reflected in gel
+    const slide = (N[0] * U[0] + N[1] * U[1]) / (Math.hypot(U[0], U[1]) || 1);
+    const centre = clamp(0.4 + slide * 0.45, 0.24, 0.6) * Ln, reach = Ln * (chrome ? 0.2 : 0.27);
+    const off = (shine * 2 - 1) * 0.62, wMax = W * (chrome ? 0.08 : 0.125);
+    const streak = (grow, a) => {
+      const left = [], right = [];
+      for (let i = 0; i <= 10; i++) {
+        const k = i / 10, s = clamp(centre + (k - 0.5) * 2 * reach, Ln * 0.06, Ln * 0.92), tc = off * halfWidth(s, W, Ln, shape), w = wMax * grow * Math.pow(Math.sin(Math.PI * k), 0.7);
+        left.push(map(s, tc - w)); right.push(map(s, tc + w));
+      }
+      trace(l, left.concat(right.reverse())); l.fillStyle = `rgba(255,255,255,${a})`; l.fill();
+    };
+    if (!matte) { // matte has no streak: its soft glow comes from the shading above
+      streak(3, 0.06); streak(1.8, 0.11); streak(1, finish === "Jelly" ? 0.85 : 0.74);
+      const sTip = Ln * 0.84, pt = map(sTip, -off * 0.5 * halfWidth(sTip, W, Ln, shape)), ul = Math.hypot(U[0], U[1]) || 1; // a second, smaller glint near the tip
+      l.beginPath(); l.ellipse(pt[0], pt[1], W * 0.2 * ul, W * 0.075, Math.atan2(U[1], U[0]), 0, 6.2832); l.fillStyle = "rgba(255,255,255,.3)"; l.fill();
+      const side = off >= 0 ? 1 : -1; // and a thin line of light along the edge nearest the light
+      l.beginPath();
+      for (let i = 0; i <= 8; i++) { const s = Ln * (0.2 + 0.55 * i / 8), p = map(s, side * 0.9 * halfWidth(s, W, Ln, shape)); i ? l.lineTo(p[0], p[1]) : l.moveTo(p[0], p[1]); }
+      l.lineCap = "round"; l.lineWidth = Math.max(1, W * 0.05); l.strokeStyle = "rgba(255,255,255,.2)"; l.stroke();
+    }
+  }
+
+  if (design === "Glitter fade" || design === "Foil flakes" || design === "Gems" || design === "Cat-eye" || finish === "Shimmer") {
+    // sparkles: each one flashes at its own angle, so they twinkle as the hand moves
+    const r = rng(7919 * (idx + 1) + hashStr(design)), tilt = n[0] * 16 + n[1] * 13;
+    const gems = design === "Gems" ? gemSpots(W, Ln) : null, count = gems ? gems.length : design === "Glitter fade" ? 16 : 11;
+    for (let i = 0; i < count; i++) {
+      let u, v, size;
+      if (gems) { [u, v, size] = gems[i]; size *= 1.25; }
+      else { v = design === "Glitter fade" ? 1 - Math.pow(r(), 1.6) * 0.7 : 0.1 + r() * 0.82; u = (r() * 2 - 1) * 0.8; size = 0.1 + r() * 0.12; }
+      const glow = Math.pow(Math.max(0, Math.sin(r() * 6.283 + tilt * (0.6 + r()))), 5);
+      if (glow < 0.06) continue;
+      const s = v * Ln, p = map(s, u * (gems ? W : halfWidth(s, W, Ln, shape)));
+      twinkle(l, p[0], p[1], W * size * (0.6 + 0.6 * glow), glow);
+    }
+  }
+
+  if (!opts.preview && scene.ready) { // match the room: dimmer in a dark room or on a finger in shadow, with a hint of the room's colour
+    const light = scene.dim * (nail.shade || 1);
+    if (light < 0.99) shade(`rgba(0,0,0,${clamp(1 - light, 0, 0.5)})`);
+    else if (light > 1.01) shade(`rgba(255,255,255,${clamp(light - 1, 0, 0.1)})`);
+    shade(css(scene.tint, 0.07));
+  }
+  l.globalCompositeOperation = "source-over";
+
+  /* 4. stamp it onto the picture; jelly polish stays a little see-through */
+  ctx.save();
+  ctx.globalAlpha = alpha * (finish === "Jelly" ? 0.76 : 0.985);
+  ctx.drawImage(layer, x0, y0, bw, bh, x0, y0, bw, bh);
+  ctx.globalAlpha = alpha;
+  trace(ctx, pts); ctx.lineJoin = "round"; ctx.lineWidth = Math.max(0.8, W * 0.045); ctx.strokeStyle = "rgba(24,10,16,.22)"; ctx.stroke();
+  ctx.restore();
+  return true;
+}
+
+/* ---------- Little pictures of each design, for the Design menu ---------- */
+function previewNail(cx, baseY, W, length) { // a nail standing upright, lit from the upper left
+  const Ln = W * 2 * length;
+  return { map: (s, t) => [cx + t, baseY - s], W, Ln, n: [-0.2, 0.08, -0.97], facing: 1, B: [cx, baseY], U: [0, -1], L: [1, 0], N: [0, 0], idx: 1 };
+}
+let tileTimer = 0;
+function refreshTiles() {
+  clearTimeout(tileTimer);
+  tileTimer = setTimeout(() => {
+    for (const [name, c] of tileCanvases) {
+      const k = c.getContext("2d");
+      k.clearRect(0, 0, c.width, c.height);
+      paintNail(k, previewNail(c.width / 2, c.height - 8, 30, 1.6), { design: name, length: 1.6, preview: true });
+    }
+  }, 60);
+}
+
+/* ---------- Hand finder (video mode) ---------- */
+let finder = null, onGPU = true, makeFinder = null;
+const finderReady = (async () => {
+  const { FilesetResolver, HandLandmarker } = await import(LIB_PATH);
+  const vision = await FilesetResolver.forVisionTasks(WASM_PATH);
+  makeFinder = (delegate) => HandLandmarker.createFromOptions(vision, {
+    baseOptions: { modelAssetPath: MODEL_PATH, delegate }, runningMode: "VIDEO", numHands: 2,
+  });
+  try { finder = await makeFinder("GPU"); } catch (e) { onGPU = false; finder = await makeFinder("CPU"); }
+})();
+finderReady.catch((e) => console.warn("Hand finder didn't load:", e));
+
+/* ---------- Camera ---------- */
+const video = $("cam"), view = $("view"), ctx = view.getContext("2d");
+let stream = null, facing = "environment", running = false, lastTime = -1, fps = 0, lastTick = 0, switching = false, frameNo = 0;
+
+function showStart(text, button) {
+  $("startText").textContent = text; $("startBtn").textContent = button || "Try again";
+  $("startOverlay").classList.remove("hidden");
+}
+async function startCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+    return showStart("This page can't reach the camera here. Open it from your GitHub Pages link in Chrome or Safari.");
+  $("startText").textContent = "Starting the camera…";
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+  } catch (e) {
+    console.warn("Camera failed:", e);
+    return showStart(e.name === "NotAllowedError" ? "The camera was blocked. Allow camera access for this page in your browser settings, then try again."
+                   : e.name === "NotFoundError" ? "No camera was found on this device."
+                   : "The camera couldn't start. Close other apps using it and try again. If you opened this page from a file or a preview, open it from your GitHub Pages link instead.");
+  }
+  video.srcObject = stream;
+  try { await video.play(); } catch (e) {}
+  const s = stream.getVideoTracks()[0].getSettings();
+  view.classList.toggle("mirrored", s.facingMode !== "environment"); // selfie cameras and webcams show like a mirror
+  $("startText").textContent = "Getting the hand finder ready…";
+  try { await finderReady; }
+  catch (e) { return showStart("The hand finder didn't load. This page needs the internet the first time it opens. Check your connection and try again."); }
+  $("startOverlay").classList.add("hidden");
+  $("fps").classList.remove("hidden");
+  ["flipBtn", "captureBtn", "trainBtn"].forEach((id) => { $(id).disabled = false; });
+  if (!running) { running = true; requestAnimationFrame(loop); }
+}
+$("startBtn").addEventListener("click", startCamera);
+$("flipBtn").addEventListener("click", async () => {
+  if (switching) return; switching = true;
+  facing = facing === "environment" ? "user" : "environment";
+  await startCamera(); switching = false;
+});
+/* ---------- Capture photo: hold the picture still and keep changing the look ---------- */
+let frozen = null, wantCapture = false;
+function paintHands(hands, t) {
+  let painted = 0;
+  for (const h of hands) {
+    const nails = nailsForHand(h, h.isRight, t);
+    // Is one finger in shadow? Each finger is compared with the hand's other fingers, so this works the same on every skin tone.
+    const lums = nails.map((nl) => sceneLum(nl.J[0], nl.J[1])), middle = lums.slice().sort((p, q) => p - q)[lums.length >> 1] || 0;
+    nails.forEach((nl, i) => { nl.shade = middle > 0.02 ? clamp(lums[i] / middle, 0.72, 1.08) : 1; if (paintNail(ctx, nl)) painted++; });
+  }
+  return painted;
+}
+function renderPhoto() {
+  ctx.drawImage(frozen.frame, 0, 0);
+  const painted = paintHands(frozen.hands, 0);
+  hint(painted ? "" : "No nails found in this photo. Tap Retake and try again.");
+}
+function showPhotoMode(on) {
+  $("liveRow").classList.toggle("hidden", on); $("photoRow").classList.toggle("hidden", !on);
+  $("fps").classList.toggle("hidden", on); $("modeBadge").classList.toggle("hidden", !on);
+  if (on) openSheet(true);
+}
+$("captureBtn").addEventListener("click", () => { if (running && !frozen) wantCapture = true; });
+$("retakeBtn").addEventListener("click", async () => {
+  if (!frozen) return;
+  frozen = null; showPhotoMode(false); hint("");
+  try { await video.play(); } catch (e) {}
+  lastTick = 0; requestAnimationFrame(loop);
+});
+function download(canvas, name, type, quality) {
+  canvas.toBlob((blob) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, type, quality);
+}
+$("snapBtn").addEventListener("click", () => {
+  if (!frozen) return;
+  let out = view;
+  if (view.classList.contains("mirrored")) { // save it the way it looks on screen
+    out = document.createElement("canvas"); out.width = view.width; out.height = view.height;
+    const o = out.getContext("2d"); o.translate(out.width, 0); o.scale(-1, 1); o.drawImage(view, 0, 0);
+  }
+  download(out, "nail-try-on.png", "image/png");
+});
+function saveTraining() {
+  if (!running) return;
+  let c = frozen && frozen.frame;
+  if (!c) {
+    if (!video.videoWidth) return;
+    c = document.createElement("canvas"); c.width = video.videoWidth; c.height = video.videoHeight;
+    c.getContext("2d").drawImage(video, 0, 0);
+  }
+  const d = new Date(), p = (x) => String(x).padStart(2, "0");
+  download(c, `nail-training-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`, "image/jpeg", 0.92);
+  toast("Training photo saved to this phone");
+}
+$("trainBtn").addEventListener("click", saveTraining);
+$("trainBtn2").addEventListener("click", saveTraining);
+
+let toastTimer = 0;
+function toast(text) {
+  const t = $("toast"); t.textContent = text; t.classList.remove("out");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add("out"), 3500);
+}
+
+/* ---------- The menu that slides up, and its tabs ---------- */
+const sheet = $("sheet"), grab = $("grab"), TABS = [...document.querySelectorAll(".tab")];
+function openSheet(open) {
+  sheet.classList.toggle("closed", !open);
+  grab.setAttribute("aria-expanded", String(open));
+  grab.setAttribute("aria-label", open ? "Hide design options" : "Show design options");
+}
+function selectTab(tab) {
+  TABS.forEach((t) => {
+    const on = t === tab;
+    t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1;
+    $(t.getAttribute("aria-controls")).classList.toggle("hidden", !on);
+  });
+  openSheet(true);
+}
+TABS.forEach((t, i) => {
+  t.addEventListener("click", () => {
+    if (t.getAttribute("aria-selected") === "true" && !sheet.classList.contains("closed")) openSheet(false); // tap the open tab again to fold the menu away
+    else selectTab(t);
+  });
+  t.addEventListener("keydown", (e) => { // arrow keys move between tabs
+    const k = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!k) return;
+    const next = TABS[(i + k + TABS.length) % TABS.length]; selectTab(next); next.focus(); e.preventDefault();
+  });
+});
+grab.addEventListener("click", () => { if (!grab.dataset.dragged) openSheet(sheet.classList.contains("closed")); delete grab.dataset.dragged; });
+let dragY = null; // swipe the handle up to open, down to close
+grab.addEventListener("pointerdown", (e) => { dragY = e.clientY; grab.setPointerCapture(e.pointerId); });
+grab.addEventListener("pointermove", (e) => {
+  if (dragY === null) return;
+  const dy = e.clientY - dragY;
+  if (Math.abs(dy) > 24) { openSheet(dy < 0); grab.dataset.dragged = "1"; dragY = null; }
+});
+grab.addEventListener("pointerup", () => { dragY = null; });
+grab.addEventListener("pointercancel", () => { dragY = null; });
+
+function hint(text) { $("hint").textContent = text || ""; $("hint").classList.toggle("hidden", !text); }
+
+/* ---------- The live loop: every frame, find the hand and paint the nails ---------- */
+async function loop(now) {
+  if (!running || frozen) return;
+  if (video.readyState >= 2 && video.videoWidth && video.currentTime !== lastTime) {
+    lastTime = video.currentTime;
+    const W = video.videoWidth, H = video.videoHeight;
+    if (view.width !== W || view.height !== H) { view.width = W; view.height = H; }
+    ctx.drawImage(video, 0, 0, W, H);
+    if (frameNo++ % 8 === 0) readScene(video, W, H);
+    let result = null;
+    try { result = finder.detectForVideo(video, now); }
+    catch (e) {
+      if (onGPU) { onGPU = false; try { finder.close(); } catch (x) {} finder = await makeFinder("CPU"); }
+      else console.warn("Scan failed:", e);
+    }
+    const hands = [];
+    if (result && result.landmarks) {
+      result.landmarks.forEach((lm, i) => {
+        const label = result.handedness[i] && result.handedness[i][0] ? result.handedness[i][0].categoryName : "Right";
+        const hand = smoothHand(label + (result.landmarks.length > 1 ? i : ""), lm, W, H, now);
+        hand.isRight = label === "Right";
+        hands.push(hand);
+      });
+    }
+    let clean = null;
+    if (wantCapture) { // keep a copy of the picture before any nails are painted on it
+      clean = document.createElement("canvas"); clean.width = W; clean.height = H;
+      clean.getContext("2d").drawImage(view, 0, 0);
+    }
+    const painted = paintHands(hands, now);
+    if (wantCapture) {
+      wantCapture = false;
+      frozen = { frame: clean, hands: hands.map((h) => ({ P: h.P.map((p) => p.slice()), K: h.K0, isRight: h.isRight })) };
+      video.pause(); showPhotoMode(true); renderPhoto();
+      return;
+    }
+    hint(!hands.length ? "Show the back of your hand to the camera" : !painted ? "Turn your hand so your nails face the camera" : "");
+    if (lastTick) fps = fps ? fps * 0.9 + (1000 / (now - lastTick)) * 0.1 : 1000 / (now - lastTick);
+    lastTick = now;
+    $("fps").textContent = Math.round(fps) + " fps";
+  }
+  requestAnimationFrame(loop);
+}
+designChanged(); drawPad(); refreshTiles();
+</script>
+</body>
+</html>

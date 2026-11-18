@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nail Care by Tee</title>
+<meta name="description" content="Find your next set. Try nail colours and shapes on your own hands, live.">
+<meta name="theme-color" content="#f6f1ff">
+<style>
+  :root {
+    --bg-top: #f6f1ff;      /* soft lilac */
+    --bg-bottom: #eefaf4;   /* soft mint */
+    --card: #ffffff;
+    --line: #e7e0f6;
+    --ink: #2a2440;
+    --quiet: #5c5577;
+    --lilac: #7653d9;
+    --lilac-dark: #5f3fc2;
+    --lilac-soft: #ece5ff;
+    --mint: #c9f1e2;
+    --mint-deep: #1c7f60;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg-bottom); }
+  body {
+    margin: 0; color: var(--ink); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    min-height: 100vh; min-height: 100dvh;
+    padding: max(28px, env(safe-area-inset-top)) 18px max(32px, env(safe-area-inset-bottom));
+  }
+  main { max-width: 440px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 20px; }
+  h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 34px; line-height: 1.15; font-weight: 600; margin: 0; letter-spacing: -.01em;
+  }
+  h1 em { font-style: italic; color: var(--lilac); }
+  .tagline { margin: 6px 0 0; font-size: 17px; color: var(--quiet); }
+
+  /* The main attraction: picture card with the live camera button */
+  .hero {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--card); border: 1px solid var(--line); border-radius: 28px; overflow: hidden;
+    box-shadow: 0 18px 40px -18px rgba(95, 63, 194, .35);
+  }
+  .hero svg { display: block; width: 100%; height: auto; }
+  /* gentle motion: the hand floats, a glint travels across the nails, sparkles twinkle */
+  .hand { transform-origin: 50% 92%; animation: float 6s ease-in-out infinite; }
+  .glint { opacity: .3; animation: glint 4.5s ease-in-out infinite; }
+  .g1 { animation-delay: .22s; } .g2 { animation-delay: .44s; } .g3 { animation-delay: .66s; } .g4 { animation-delay: .88s; }
+  .twinkle { transform-box: fill-box; transform-origin: center; animation: twinkle 3.2s ease-in-out infinite; }
+  .t1 { animation-delay: .8s; } .t2 { animation-delay: 1.6s; } .t3 { animation-delay: 2.3s; }
+  @keyframes float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(-1.2deg); } }
+  @keyframes glint { 0%, 30%, 100% { opacity: .3; } 12% { opacity: 1; } }
+  @keyframes twinkle { 0%, 100% { transform: scale(1); opacity: .95; } 50% { transform: scale(.45); opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .hand, .glint, .twinkle { animation: none; } }
+  .hero-body { padding: 16px; }
+  .cta {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    min-height: 72px; border-radius: 20px; padding: 0 20px;
+    background: var(--lilac); color: #fff; font-size: 21px; font-weight: 650;
+    box-shadow: 0 10px 22px -10px rgba(95, 63, 194, .8);
+  }
+  .cta svg { width: 38px; height: 38px; flex: none; }
+  .hero:active .cta { background: var(--lilac-dark); transform: scale(.985); }
+  .hero-note { margin: 10px 0 0; text-align: center; font-size: 14px; color: var(--quiet); }
+
+  /* Icon guide */
+  .guide { margin-top: 34px; }
+  h2 { font-size: 16px; margin: 0 0 12px; text-align: center; font-weight: 650; }
+  .tips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; list-style: none; margin: 0; padding: 0; }
+  .tips li {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 14px 10px 12px; text-align: center; font-size: 14px; line-height: 1.3;
+  }
+  .ico {
+    width: 52px; height: 52px; border-radius: 50%; background: var(--mint); color: var(--mint-deep);
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;
+  }
+  .tips li:nth-child(2) .ico, .tips li:nth-child(3) .ico { background: var(--lilac-soft); color: var(--lilac-dark); }
+  .ico svg { width: 30px; height: 30px; }
+
+  .btn2 {
+    display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px;
+    min-height: 56px; border-radius: 16px; text-decoration: none;
+    background: var(--card); color: var(--lilac-dark); border: 2px solid var(--lilac);
+    font-size: 17px; font-weight: 650;
+  }
+  .btn2 svg { width: 24px; height: 24px; }
+  .btn2:active { background: var(--lilac-soft); }
+
+  footer { text-align: center; margin-top: 20px; }
+  footer a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; color: var(--lilac-dark); font-size: 15px; font-weight: 500; text-underline-offset: 3px; }
+  a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  a:focus-visible { outline: 3px solid var(--lilac); outline-offset: 3px; border-radius: 20px; }
+  .hero { transition: transform 120ms cubic-bezier(.2,.8,.2,1); }
+  .hero:active { transform: scale(.99); }
+  .btn2 { transition: background-color 120ms cubic-bezier(.2,.8,.2,1); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Nail Care <em>by Tee</em></h1>
+    <p class="tagline">Find your next set.</p>
+  </header>
+
+  <a class="hero" href="live.html" aria-label="Try nails on live with your camera">
+    <svg viewBox="0 0 320 320" role="img" aria-label="A hand with pastel lilac, mint and cream almond nails with gold details">
+      <defs>
+        <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fdfbff"/><stop offset="1" stop-color="#f1ebf8"/></linearGradient>
+        <linearGradient id="silkL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ebe1fc"/><stop offset="1" stop-color="#d2c0f4"/></linearGradient>
+        <linearGradient id="silkM" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e2f7ee"/><stop offset="1" stop-color="#c6ecdc"/></linearGradient>
+        <linearGradient id="marbleNail" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cfb8f3"/><stop offset=".5" stop-color="#eee6fb"/><stop offset="1" stop-color="#bfe9d7"/></linearGradient>
+        <radialGradient id="sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe6bf" stop-opacity=".95"/><stop offset="1" stop-color="#ffe6bf" stop-opacity="0"/></radialGradient>
+        <g id="skin">
+          <rect x="118.2" y="134" width="17.5" height="96" rx="8.8" transform="rotate(-6 127 208)"/>
+          <rect x="136" y="94" width="20" height="132" rx="10" transform="rotate(-2 146 204)"/>
+          <rect x="156.5" y="78" width="21" height="146" rx="10.5" transform="rotate(0.5 167 202)"/>
+          <rect x="178" y="96" width="20" height="130" rx="10" transform="rotate(3.5 188 204)"/>
+          <rect x="202.5" y="170" width="23" height="86" rx="11.5" transform="rotate(21 214 248)"/>
+          <ellipse cx="208" cy="252" rx="15" ry="30" transform="rotate(18 208 252)"/>
+          <path d="M119 226 C117 214 120 205 126 200 L188 199 C194 203 198 210 198 217 C206 230 220 242 220 258 C220 274 207 283 201 295 L201 326 L134 326 L133 295 C126 281 117 266 117 244 Z"/>
+        </g>
+      </defs>
+
+      <!-- marble, soft light and silk -->
+      <rect width="320" height="320" fill="url(#wall)"/>
+      <g fill="none" stroke="#cdc6d8" stroke-linecap="round" opacity=".7">
+        <path d="M24 -4 C70 40 60 96 118 128 C150 146 150 176 190 196" stroke-width="1.4"/>
+        <path d="M150 -6 C170 40 224 52 246 110" stroke-width="1.2"/>
+        <path d="M70 46 C92 52 100 70 96 92 M206 48 C224 70 222 92 240 104 M44 110 C60 118 66 136 84 140" stroke-width=".9"/>
+      </g>
+      <circle cx="286" cy="34" r="120" fill="url(#sun)"/>
+      <path d="M0 128 C30 150 58 196 52 252 C48 290 60 310 72 320 L0 320Z" fill="url(#silkL)"/>
+      <path d="M0 160 C20 186 34 232 28 320 M0 204 C10 236 12 280 8 320" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+      <path d="M320 92 C288 128 262 190 268 252 C272 290 262 310 254 320 L320 320Z" fill="url(#silkL)" opacity=".9"/>
+      <path d="M320 140 C300 180 288 250 296 320 M320 210 C312 250 312 290 316 320" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+      <path d="M0 266 C52 254 104 290 118 320 L0 320Z" fill="url(#silkM)"/>
+      <path d="M0 286 C36 282 70 300 84 320" fill="none" stroke="#fff" stroke-width="3.500" stroke-linecap="round" opacity=".6"/>
+      <path d="M320 270 C286 274 250 300 242 320 L320 320Z" fill="url(#silkM)"/>
+      <g fill="#fff">
+        <path class="twinkle t0" d="M56 75 Q56 88 69 88 Q56 88 56 101 Q56 88 43 88 Q56 88 56 75Z"/><path class="twinkle t1" d="M266 144 Q266 154 276 154 Q266 154 266 164 Q266 154 256 154 Q266 154 266 144Z"/><path class="twinkle t2" d="M96 32 Q96 38 102 38 Q96 38 96 44 Q96 38 90 38 Q96 38 96 32Z"/><path class="twinkle t3" d="M250 57 Q250 64 257 64 Q250 64 250 71 Q250 64 243 64 Q250 64 250 57Z"/>
+      </g>
+
+      <!-- the hand -->
+      <g class="hand">
+        <use href="#skin" fill="#b98363" stroke="#8a5a40" stroke-width="2.600" stroke-linejoin="round"/>
+        <use href="#skin" fill="#b98363"/>
+        <g fill="none" stroke="#8a5a40" stroke-width="1" stroke-linecap="round" opacity=".32">
+          <path d="M122.5 162.1 q4.5 2.4 9 0" transform="rotate(-6 127 208)"/>
+          <path d="M122.5 184.3 q4.5 2.4 9 0" transform="rotate(-6 127 208)"/>
+          <path d="M141.5 135.8 q4.5 2.4 9 0" transform="rotate(-2 146 204)"/>
+          <path d="M141.5 168.8 q4.5 2.4 9 0" transform="rotate(-2 146 204)"/>
+          <path d="M162.5 125.1 q4.5 2.4 9 0" transform="rotate(0.5 167 202)"/>
+          <path d="M162.5 162.3 q4.5 2.4 9 0" transform="rotate(0.5 167 202)"/>
+          <path d="M183.5 137 q4.5 2.4 9 0" transform="rotate(3.5 188 204)"/>
+          <path d="M183.5 169.4 q4.5 2.4 9 0" transform="rotate(3.5 188 204)"/>
+          <path d="M209.5 210.6 q4.5 2.4 9 0" transform="rotate(21 214 248)"/>
+          <path d="M127 220 q3.500 4.500 0 10 M146 216 q3.500 4.500 0 10 M167 215 q3.500 4.500 0 10 M187 217 q3.500 4.500 0 10"/>
+        </g>
+        <g transform="rotate(-6 127 208)">
+          <path d="M120.2 148 L120.2 134 C120.2 122 124.3 114 127 114 C129.7 114 133.8 122 133.8 134 L133.8 148 Q127 154 120.2 148Z" fill="#cdb5f2" stroke="#a892c9" stroke-width=".9"/>
+          <path d="M121.2 141 Q127 136 132.8 141" stroke="#cfa14a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path class="glint g0" d="M123.6 143 L123.6 127" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(-2 146 204)">
+          <path d="M138 108 L138 94 C138 82 142.8 74 146 74 C149.2 74 154 82 154 94 L154 108 Q146 114 138 108Z" fill="#fbf4e8" stroke="#a892c9" stroke-width=".9"/>
+          <g fill="#c3a6ee"><circle cx="145.9" cy="89" r="1.9"/><circle cx="144.2" cy="91.3" r="1.9"/><circle cx="141.6" cy="90.4" r="1.9"/><circle cx="141.6" cy="87.6" r="1.9"/><circle cx="144.2" cy="86.7" r="1.9"/></g><circle cx="143.5" cy="89" r="1" fill="#cfa14a"/><g fill="#c3a6ee"><circle cx="150.9" cy="100" r="1.5"/><circle cx="149.6" cy="101.8" r="1.5"/><circle cx="147.5" cy="101.1" r="1.5"/><circle cx="147.5" cy="98.9" r="1.5"/><circle cx="149.6" cy="98.2" r="1.5"/></g><circle cx="149" cy="100" r="1" fill="#cfa14a"/>
+          <path class="glint g1" d="M142 103 L142 87" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(0.5 167 202)">
+          <path d="M158.5 92 L158.5 78 C158.5 66 163.6 58 167 58 C170.4 58 175.5 66 175.5 78 L175.5 92 Q167 98 158.5 92Z" fill="url(#marbleNail)" stroke="#a892c9" stroke-width=".9"/>
+          <path d="M168 67 q-3 4 0 7 q3 3 -1 7 q-2 3 1 6" stroke="#cfa14a" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="171" cy="78" r="1" fill="#cfa14a"/>
+          <path class="glint g2" d="M162.8 87 L162.8 71" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(3.5 188 204)">
+          <path d="M180 110 L180 96 C180 84 184.8 76 188 76 C191.2 76 196 84 196 96 L196 110 Q188 116 180 110Z" fill="#bfe9d7" stroke="#a892c9" stroke-width=".9"/>
+          <path d="M181 92 Q188 86 195 92" stroke="#cfa14a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path class="glint g3" d="M184 105 L184 89" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(21 214 248)">
+          <path d="M204.5 184 L204.5 170 C204.5 158 210.2 150 214 150 C217.8 150 223.5 158 223.5 170 L223.5 184 Q214 190 204.5 184Z" fill="#fbf4e8" stroke="#a892c9" stroke-width=".9"/>
+          <path d="M210.5 178 q2 -10 6.500 -16" stroke="#c9b0f0" stroke-width="4" fill="none" stroke-linecap="round" opacity=".9"/><path d="M216 173 l2 -3 M213 176 l1.500 -2" stroke="#cfa14a" stroke-width="1.3" stroke-linecap="round"/>
+          <path class="glint g4" d="M209.2 179 L209.2 163" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </g>
+        <!-- bracelet -->
+        <path d="M133 300 Q167 309 201 300" fill="none" stroke="#cfa14a" stroke-width="2.400" stroke-linecap="round" stroke-dasharray=".5 3.600"/>
+        <path d="M133 300 Q167 309 201 300" fill="none" stroke="#e6c477" stroke-width=".8"/>
+      </g>
+    </svg>
+    <div class="hero-body">
+      <div class="cta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 8.5A2.5 2.5 0 0 1 5.500 6h1.700l1.300-2h7l1.300 2h1.700A2.500 2.500 0 0 1 21 8.500v9A2.500 2.500 0 0 1 18.500 20h-13A2.500 2.500 0 0 1 3 17.500z"/>
+          <circle cx="12" cy="13" r="3.800"/>
+        </svg>
+        Try nails on live
+      </div>
+      <p class="hero-note">Opens your camera. Your picture stays on your phone.</p>
+    </div>
+  </a>
+
+  <section class="guide" aria-labelledby="guideTitle">
+    <h2 id="guideTitle">For the best fit</h2>
+    <ul class="tips">
+      <li>
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8 12V5.500a1.500 1.500 0 0 1 3 0V11m0-5.500V4a1.500 1.500 0 0 1 3 0v7m0-5.500a1.500 1.500 0 0 1 3 0V13m0-4a1.500 1.500 0 0 1 3 0v5a7 7 0 0 1-7 7h-1a6 6 0 0 1-4.700-2.300L4.300 14.900a1.500 1.500 0 0 1 2.300-1.900L8 14.500"/>
+        </svg></div>
+        Back of your hand facing up
+      </li>
+      <li>
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8.500 20.500 5.500 4M15.500 20.500l3-16.500"/><path d="M10.800 8 9 10l1.800 2M13.200 8 15 10l-1.800 2"/>
+        </svg></div>
+        Fingers slightly apart
+      </li>
+      <li>
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2.500v2M12 19.500v2M2.500 12h2M19.500 12h2M5.300 5.300l1.400 1.400M17.300 17.300l1.400 1.400M5.300 18.700l1.400-1.400M17.300 6.700l1.400-1.400"/>
+        </svg></div>
+        Bright, even light
+      </li>
+      <li>
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3.500 8V5.500a2 2 0 0 1 2-2H8M16 3.500h2.500a2 2 0 0 1 2 2V8M20.500 16v2.500a2 2 0 0 1-2 2H16M8 20.500H5.500a2 2 0 0 1-2-2V16"/>
+          <g fill="currentColor" stroke="none"><circle cx="8" cy="11" r="1.200"/><circle cx="10.700" cy="9" r="1.200"/><circle cx="13.500" cy="9" r="1.200"/><circle cx="16.200" cy="10.800" r="1.200"/><circle cx="7.500" cy="15" r="1.200"/></g>
+        </svg></div>
+        All five nails in view
+      </li>
+    </ul>
+    <a class="btn2" href="live.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 8.500A2.500 2.500 0 0 1 5.500 6h1.700l1.300-2h7l1.300 2h1.700A2.500 2.500 0 0 1 21 8.500v9A2.500 2.500 0 0 1 18.500 20h-13A2.500 2.500 0 0 1 3 17.500z"/>
+        <circle cx="12" cy="13" r="3.800"/>
+      </svg>
+      Take a photo
+    </a>
+  </section>
+
+  <footer><a href="scan.html">Scan a photo instead</a></footer>
+</main>
+</body>
+</html>
