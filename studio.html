@@ -47,6 +47,32 @@ button.pill:disabled{opacity:.45;cursor:default}
 .ghostnail.over{opacity:.35}
 footer{text-align:center;font-size:14px;color:#7B6CA8;padding:0 16px 28px}
 footer a{color:#4A3B78;font-weight:700}
+.recolour{background:#F8F5FF;border:1px solid var(--line);border-radius:16px;padding:10px 12px 12px;margin:0 0 14px}
+.recolour[hidden]{display:none}
+.recolour .t{margin:0 0 8px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:32px}
+.recolour .t span{color:#7B6CA8}
+.cols{display:flex;gap:12px 14px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;min-width:48px;text-align:center}
+.dot{position:relative;display:block;width:44px;height:44px;border-radius:50%;padding:3px;background:conic-gradient(#ff6b8b,#ffd36b,#8fe3c5,#7fb8ff,#b9a2e8,#ff6b8b);cursor:pointer;flex:none}
+.dot .fill{display:block;width:100%;height:100%;border-radius:50%;border:2px solid #fff}
+.dot input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;margin:0}
+.dot:focus-within{outline:3px solid var(--mint-d);outline-offset:2px}
+.mini{font:inherit;font-size:12.5px;font-weight:700;border:0;background:none;color:var(--ink);text-decoration:underline;cursor:pointer;min-height:32px;padding:0 4px}
+.drawbox{grid-column:1/-1;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;justify-content:center;margin-bottom:6px}
+.padwrap{position:relative;width:150px;height:341px;flex:none;border-radius:16px;background:#fff;box-shadow:0 0 0 1px var(--line)}
+#pad{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;border-radius:16px}
+.padwrap svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.drawtools{display:flex;flex-direction:column;gap:12px;min-width:170px;flex:1;max-width:280px}
+.tl{font-size:13px;font-weight:700;margin:0 0 6px}
+.pens{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pen{width:32px;height:32px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1.5px var(--line);cursor:pointer;padding:0;position:relative}
+.pen::before{content:"";position:absolute;inset:-9px}
+.pen[aria-pressed=true]{box-shadow:0 0 0 3px var(--lilac-d)}
+.pens .dot{width:38px;height:38px}
+.pens .dot[aria-pressed=true]{box-shadow:0 0 0 3px var(--lilac-d)}
+.sizes{display:flex;gap:6px}
+.sizes .tab{min-height:40px}
+.drawn{grid-column:1/-1;font-size:13px;font-weight:700;margin:6px 0 0}
 .steps{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;font-size:12.5px;color:#7B6CA8;margin:0 0 10px}
 .steps span{background:#F3EEFF;border-radius:999px;padding:5px 10px}
 </style></head>
@@ -66,6 +92,7 @@ footer a{color:#4A3B78;font-weight:700}
  <section class="card" aria-label="Designs">
   <div class="steps"><span>1 · Drag a design</span><span>2 · Hover over a nail to preview</span><span>3 · Let go to stick it</span></div>
   <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="recolour" id="colourEdit" hidden aria-label="Change this design's colours"></div>
   <div class="grid" id="grid"></div>
  </section>
 </main>
@@ -73,13 +100,14 @@ footer a{color:#4A3B78;font-weight:700}
 <script src="glow-styles.js"></script>
 <script>
 const DESIGNS = (window.GLOW_STYLES || []).slice();
-const GROUPS = (window.GLOW_STYLE_GROUPS || []).concat(["Yours"]);
+const GROUPS = (window.GLOW_STYLE_GROUPS || []).concat(["Draw", "Yours"]);
 const SKINS = {"app-tone": {"skin": "#B98363", "edge": "#8A5A40"}, "deep": {"skin": "#7A4A2E", "edge": "#4F2D1A"}, "medium": {"skin": "#C68E62", "edge": "#94603D"}, "light": {"skin": "#E8BFA0", "edge": "#B9876A"}};
 const TONE_NAMES = {"app-tone": "Caramel", "deep": "Deep", "medium": "Golden", "light": "Light"};
 const NAIL_NAMES = {thumb:"Thumb",index:"Index",middle:"Middle",ring:"Ring",little:"Little"};
 const svg = document.getElementById('hand');
 const NS = "http://www.w3.org/2000/svg";
-const state = {applied:{}, selected:null, group:"Colours", preview:null};
+const state = {applied:{}, selected:null, group:location.hash === "#draw" ? "Draw" : "Colours", preview:null, colours:{}};
+const look = d => d.view || d.src; // the design as the customer has coloured it
 const hint = document.getElementById('hint');
 const byId = id => DESIGNS.find(d => d.id === id);
 
@@ -90,7 +118,7 @@ function setNail(nail, design){
   if(!design) return;
   const [x,y,w,h] = g.dataset.box.split(',').map(Number);
   const im = document.createElementNS(NS,'image');
-  im.setAttribute('href', design.src);
+  im.setAttribute('href', look(design));
   im.setAttribute('x',x); im.setAttribute('y',y); im.setAttribute('width',w); im.setAttribute('height',h);
   im.setAttribute('preserveAspectRatio','xMidYMid slice');
   g.appendChild(im);
@@ -153,6 +181,10 @@ function renderTabs(){
 }
 function renderGrid(){
   grid.textContent='';
+  if(state.group === 'Draw'){
+    grid.appendChild(drawBox); paintPad();
+    if(DESIGNS.some(d => d.group === 'Draw')){ const t = document.createElement('p'); t.className = 'drawn'; t.textContent = 'Your drawings: drag one onto a nail'; grid.appendChild(t); }
+  }
   if(state.group === 'Yours'){
     const l = document.createElement('label'); l.className='upload';
     l.innerHTML = '<span class="n" aria-hidden="true">+</span><span>Add a picture</span><input type="file" accept="image/*">';
@@ -163,7 +195,7 @@ function renderGrid(){
     const b = document.createElement('button');
     b.className='chip'; b.setAttribute('aria-pressed', state.selected===d.id); b.dataset.id=d.id;
     b.innerHTML = '<span class="n" aria-hidden="true"></span><span></span>';
-    b.querySelector('.n').style.backgroundImage = 'url("' + d.src + '")';
+    b.querySelector('.n').style.backgroundImage = 'url("' + look(d) + '")';
     b.lastChild.textContent = d.label;
     b.setAttribute('aria-label', d.label + ' design');
     attachDrag(b, d);
@@ -175,6 +207,7 @@ function select(id){
   grid.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.id===id));
   document.getElementById('all').disabled = !id;
   if(id) hint.textContent = byId(id).label + ' picked. Drag it onto a nail, or tap a nail.';
+  renderColours();
 }
 function addOwn(file){
   if(!file) return;
@@ -198,6 +231,189 @@ function addOwn(file){
   r.readAsDataURL(file);
 }
 
+// ----- changing a design's colours
+// Shades of the same colour are grouped, so changing "Red" moves every red shade together and the shading stays.
+const COLOUR_ATTR = /((?:fill|stroke|stop-color)=")(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})(")/g;
+const hex6 = h => { h = h.replace('#',''); if(h.length === 3) h = h.split('').map(c => c + c).join(''); return '#' + h.toUpperCase(); };
+function hsl(h){
+  h = hex6(h); const [r,g,b] = [1,3,5].map(i => parseInt(h.substr(i,2),16)/255);
+  const mx = Math.max(r,g,b), mn = Math.min(r,g,b), l = (mx+mn)/2, c = mx-mn;
+  let s = 0, hu = 0;
+  if(c){ s = c/(1-Math.abs(2*l-1)); hu = mx===r ? ((g-b)/c)%6 : mx===g ? (b-r)/c+2 : (r-g)/c+4; hu *= 60; if(hu < 0) hu += 360; }
+  return {h:hu, s:Math.min(1,s), l, c};
+}
+function fromHsl(h,s,l){
+  h = ((h%360)+360)%360; s = Math.min(1,Math.max(0,s)); l = Math.min(1,Math.max(0,l));
+  const c = (1-Math.abs(2*l-1))*s, x = c*(1-Math.abs((h/60)%2-1)), m = l-c/2;
+  const [r,g,b] = h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];
+  return '#' + [r,g,b].map(v => Math.round((v+m)*255).toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+function colourName(hex){
+  const x = hsl(hex), h = x.h;
+  if(x.c < 0.1) return x.l > 0.8 ? 'White' : x.l < 0.3 ? 'Black' : 'Grey';
+  if(h < 15 || h >= 345) return x.l > 0.75 ? 'Pink' : 'Red';
+  if(h < 35) return x.l < 0.45 ? 'Brown' : x.l > 0.72 ? 'Nude' : 'Orange';
+  if(h < 65) return x.l < 0.65 ? 'Gold' : 'Yellow';
+  if(h < 170) return x.l > 0.6 ? 'Mint' : 'Green';
+  if(h < 250) return 'Blue';
+  if(h < 290) return 'Lilac';
+  return 'Pink';
+}
+function families(d){
+  if(d._fam !== undefined) return d._fam;
+  if(!d.src.startsWith('data:image/svg')) return d._fam = null; // pictures and drawings keep their own colours
+  d._txt = decodeURIComponent(d.src.slice(d.src.indexOf(',') + 1));
+  const count = new Map();
+  for(const m of d._txt.matchAll(COLOUR_ATTR)){ const k = hex6(m[2]); count.set(k, (count.get(k)||0) + 1); }
+  const cols = [...count.keys()], info = cols.map(hsl), parent = cols.map((_,i) => i);
+  const find = i => parent[i] === i ? i : (parent[i] = find(parent[i]));
+  for(let i = 0; i < cols.length; i++) for(let j = i+1; j < cols.length; j++){
+    const a = info[i], b = info[j], na = a.c < 0.1, nb = b.c < 0.1;
+    let same;
+    if(na && nb) same = (a.l < 0.35) === (b.l < 0.35);
+    else if(na || nb) same = false;
+    else { const dh = Math.min(Math.abs(a.h-b.h), 360-Math.abs(a.h-b.h)); same = dh < 22 && Math.abs(a.l-b.l) < 0.3 && Math.abs(a.c-b.c) < 0.25; }
+    if(same) parent[find(i)] = find(j);
+  }
+  const groups = new Map();
+  cols.forEach((c,i) => { const r = find(i); if(!groups.has(r)) groups.set(r, []); groups.get(r).push(c); });
+  let fam = [...groups.values()].map(members => ({members,
+    key: members.reduce((a,b) => count.get(b) > count.get(a) ? b : a),          // the shade used most
+    hue: members.reduce((a,b) => hsl(b).c > hsl(a).c ? b : a)}));               // the strongest shade, for its name
+  // the base is the colour that fills the whole nail; a design that starts with a blend (like ombré) has no base
+  const full = d._txt.match(/<rect width="440" height="1000" fill="([^"]+)"/);
+  let baseAt = full ? (full[1].startsWith('#') ? fam.findIndex(f => f.members.includes(hex6(full[1]))) : -1) : 0;
+  if(baseAt > 0) fam.unshift(fam.splice(baseAt, 1)[0]), baseAt = 0;
+  const used = {};
+  fam.forEach((f,i) => {
+    let n = fam.length === 1 ? 'Colour' : i === 0 && baseAt === 0 ? 'Base'
+      : (i === 1 && d.group === 'Tips') ? (d.id === 'half-moon' ? 'Moon' : 'Tip') : colourName(f.hue);
+    used[n] = (used[n]||0) + 1; if(used[n] > 1) n += ' ' + used[n];
+    f.name = n;
+  });
+  return d._fam = fam;
+}
+function recoloured(d){
+  const ch = state.colours[d.id];
+  if(!ch || !Object.keys(ch).length) return null;
+  const map = new Map();
+  families(d).forEach((f,i) => {
+    const n = ch[i]; if(!n) return;
+    const K = hsl(f.key), N = hsl(n);
+    f.members.forEach(m => {
+      if(m === f.key){ map.set(m, hex6(n)); return; }
+      const M = hsl(m), plainKey = K.c < 0.1;
+      const h = plainKey ? N.h : M.h + (N.h - K.h);
+      const s = plainKey ? N.s : M.s * (K.s ? N.s / K.s : 1);
+      const l = M.l >= K.l ? N.l + (M.l - K.l) * (1 - N.l) / ((1 - K.l) || 1) : N.l * M.l / (K.l || 1);
+      map.set(m, fromHsl(h, s, l));
+    });
+  });
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(d._txt.replace(COLOUR_ATTR, (all,a,c,z) => a + (map.get(hex6(c)) || c) + z));
+}
+function refreshDesign(d){
+  d.view = recoloured(d);
+  grid.querySelectorAll('.chip').forEach(c => { if(c.dataset.id === d.id) c.querySelector('.n').style.backgroundImage = 'url("' + look(d) + '")'; });
+  Object.entries(state.applied).forEach(([n,id]) => { if(id === d.id) setNail(n, d); });
+  if(state.preview && state.applied[state.preview] !== d.id && state.selected === d.id) setNail(state.preview, d);
+}
+const edit = document.getElementById('colourEdit');
+function renderColours(){
+  const d = state.selected && byId(state.selected), fam = d && families(d);
+  edit.textContent = '';
+  if(!fam || !fam.length){ edit.hidden = true; return; }
+  edit.hidden = false;
+  const t = document.createElement('p'); t.className = 't';
+  t.innerHTML = '<span><b>Colours</b> · tap a circle to change it</span>';
+  const reset = document.createElement('button'); reset.className = 'mini'; reset.type = 'button'; reset.textContent = 'Reset colours';
+  reset.hidden = !(state.colours[d.id] && Object.keys(state.colours[d.id]).length);
+  reset.onclick = () => { delete state.colours[d.id]; refreshDesign(d); renderColours(); hint.textContent = d.label + ' is back to its own colours.'; };
+  t.appendChild(reset); edit.appendChild(t);
+  const row = document.createElement('div'); row.className = 'cols';
+  fam.forEach((f,i) => {
+    const cur = (state.colours[d.id] || {})[i] || f.key;
+    const col = document.createElement('div'); col.className = 'col';
+    const dot = document.createElement('label'); dot.className = 'dot';
+    const fill = document.createElement('span'); fill.className = 'fill'; fill.style.background = cur;
+    const inp = document.createElement('input'); inp.type = 'color'; inp.value = cur.toLowerCase();
+    inp.setAttribute('aria-label', 'Change the ' + f.name.toLowerCase() + ' colour of ' + d.label);
+    inp.addEventListener('input', () => {
+      (state.colours[d.id] = state.colours[d.id] || {})[i] = inp.value;
+      fill.style.background = inp.value; refreshDesign(d); reset.hidden = false;
+    });
+    dot.append(fill, inp);
+    const name = document.createElement('span'); name.textContent = f.name;
+    col.append(dot, name); row.appendChild(col);
+  });
+  edit.appendChild(row);
+}
+
+// ----- drawing your own design
+const PAD_W = 440, PAD_H = 1000, PEN_SIZES = {Fine:10, Medium:22, Bold:44};
+const PEN_COLOURS = ['#FFFFFF','#1E1B24','#CFA14A','#A98BE3','#8FD9BC','#F7C6D9','#C8243C'];
+const draw = {base:'#F7C6D9', pen:'#FFFFFF', size:'Medium', strokes:[], undo:[]};
+const drawBox = document.createElement('div'); drawBox.className = 'drawbox';
+drawBox.innerHTML = `
+ <div class="padwrap">
+  <canvas id="pad" width="${PAD_W}" height="${PAD_H}" aria-label="Drawing pad: draw your nail design with your finger"></canvas>
+  <svg viewBox="0 0 ${PAD_W} ${PAD_H}" aria-hidden="true"><path fill="rgba(251,248,255,.55)" fill-rule="evenodd" d="M0 0H440V1000H0Z M24 640 C24 330 120 46 220 24 C320 46 416 330 416 640 C416 900 336 980 220 980 C104 980 24 900 24 640 Z"/><path fill="none" stroke="#A98BE3" stroke-width="5" stroke-dasharray="14 12" d="M24 640 C24 330 120 46 220 24 C320 46 416 330 416 640 C416 900 336 980 220 980 C104 980 24 900 24 640 Z"/></svg>
+ </div>
+ <div class="drawtools">
+  <div><p class="tl">Base colour</p><div class="pens"><label class="dot" title="Base colour"><span class="fill" id="baseFill"></span><input type="color" id="baseIn" aria-label="Pick the base colour"></label></div></div>
+  <div><p class="tl">Pen colour</p><div class="pens" id="pens"></div></div>
+  <div><p class="tl">Pen size</p><div class="sizes" id="sizes"></div></div>
+  <div class="row" style="justify-content:flex-start"><button class="pill ghost" type="button" id="undoDraw">Undo</button><button class="pill ghost" type="button" id="clearDraw">Clear</button></div>
+  <button class="pill mint" type="button" id="useDraw">Add to my designs</button>
+ </div>`;
+const pad = drawBox.querySelector('#pad'), pctx = pad.getContext('2d');
+function paintPad(){
+  pctx.fillStyle = draw.base; pctx.fillRect(0, 0, PAD_W, PAD_H);
+  pctx.lineCap = 'round'; pctx.lineJoin = 'round';
+  draw.strokes.forEach(st => {
+    const p = st.pts; pctx.strokeStyle = st.c; pctx.fillStyle = st.c; pctx.lineWidth = st.w;
+    if(p.length === 1){ pctx.beginPath(); pctx.arc(p[0][0], p[0][1], st.w/2, 0, 6.2832); pctx.fill(); return; }
+    pctx.beginPath(); pctx.moveTo(p[0][0], p[0][1]);
+    for(let i = 1; i < p.length - 1; i++) pctx.quadraticCurveTo(p[i][0], p[i][1], (p[i][0]+p[i+1][0])/2, (p[i][1]+p[i+1][1])/2);
+    pctx.lineTo(p[p.length-1][0], p[p.length-1][1]); pctx.stroke();
+  });
+}
+const snap = () => draw.undo.push(JSON.stringify({base:draw.base, strokes:draw.strokes}));
+let stroke = null;
+const padPoint = e => { const r = pad.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * PAD_W, (e.clientY - r.top) / r.height * PAD_H]; };
+pad.addEventListener('pointerdown', e => { e.preventDefault(); pad.setPointerCapture(e.pointerId); snap(); stroke = {c:draw.pen, w:PEN_SIZES[draw.size], pts:[padPoint(e)]}; draw.strokes.push(stroke); paintPad(); });
+pad.addEventListener('pointermove', e => { if(!stroke) return; stroke.pts.push(padPoint(e)); paintPad(); });
+['pointerup','pointercancel'].forEach(t => pad.addEventListener(t, () => { stroke = null; }));
+const baseIn = drawBox.querySelector('#baseIn'), baseFill = drawBox.querySelector('#baseFill');
+baseIn.value = draw.base.toLowerCase(); baseFill.style.background = draw.base;
+baseIn.addEventListener('input', () => { draw.base = baseIn.value; baseFill.style.background = baseIn.value; paintPad(); });
+const pens = drawBox.querySelector('#pens');
+function markPen(){ pens.querySelectorAll('[data-c]').forEach(b => b.setAttribute('aria-pressed', b.dataset.c === draw.pen)); }
+PEN_COLOURS.forEach(c => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pen'; b.style.background = c; b.dataset.c = c;
+  b.setAttribute('aria-label', colourName(c) + ' pen'); b.onclick = () => { draw.pen = c; markPen(); };
+  pens.appendChild(b);
+});
+const anyPen = document.createElement('label'); anyPen.className = 'dot'; anyPen.title = 'Any colour';
+anyPen.innerHTML = '<span class="fill" style="background:#7653D9"></span><input type="color" value="#7653d9" aria-label="Pick any pen colour">';
+anyPen.querySelector('input').addEventListener('input', e => { draw.pen = e.target.value.toUpperCase(); anyPen.dataset.c = draw.pen; anyPen.firstChild.style.background = draw.pen; markPen(); });
+pens.appendChild(anyPen); markPen();
+const sizes = drawBox.querySelector('#sizes');
+Object.keys(PEN_SIZES).forEach(n => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'tab'; b.textContent = n; b.setAttribute('aria-selected', n === draw.size);
+  b.onclick = () => { draw.size = n; sizes.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === b)); };
+  sizes.appendChild(b);
+});
+drawBox.querySelector('#undoDraw').onclick = () => { const s = draw.undo.pop(); if(!s) return; const o = JSON.parse(s); draw.base = o.base; draw.strokes = o.strokes; baseIn.value = draw.base.toLowerCase(); baseFill.style.background = draw.base; paintPad(); };
+drawBox.querySelector('#clearDraw').onclick = () => { if(!draw.strokes.length) return; snap(); draw.strokes = []; paintPad(); hint.textContent = 'Drawing cleared. Undo brings it back.'; };
+drawBox.querySelector('#useDraw').onclick = () => {
+  if(!draw.strokes.length && !confirmPlain()) return;
+  const n = DESIGNS.filter(d => d.group === 'Draw').length + 1;
+  const d = {id:'draw-' + Date.now(), label:'My drawing ' + n, group:'Draw', src:pad.toDataURL('image/png')};
+  DESIGNS.push(d); renderGrid(); select(d.id);
+  hint.textContent = 'My drawing ' + n + ' is ready. Drag it onto a nail, or tap a nail.';
+};
+function confirmPlain(){ hint.textContent = 'Draw something first, or pick a colour from the Colours tab.'; return false; }
+
 // ----- drag, hover and stick
 let ghost = null;
 function attachDrag(btn, d){
@@ -210,7 +426,7 @@ function attachDrag(btn, d){
       if(!dragging && Math.hypot(ev.clientX-sx, ev.clientY-sy) > 6){
         dragging = true; select(d.id);
         ghost = document.createElement('div'); ghost.className='ghostnail';
-        ghost.style.backgroundImage = 'url("' + d.src + '")'; document.body.appendChild(ghost);
+        ghost.style.backgroundImage = 'url("' + look(d) + '")'; document.body.appendChild(ghost);
       }
       if(!dragging) return;
       ghost.style.left = ev.clientX + 'px'; ghost.style.top = ev.clientY + 'px';
