@@ -137,6 +137,17 @@
     background: var(--lilac-dark) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat;
   }
   .tiles ~ .group { margin-top: 12px; }
+  .recolour { background: var(--card2); border-radius: 16px; padding: 8px 12px 10px; margin: 0 0 10px; }
+  .recolour .t { margin: 0 0 6px; font-size: 14px; color: var(--quiet); display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 32px; }
+  .recolour .t b { color: var(--ink); }
+  .cols { display: flex; gap: 10px 16px; flex-wrap: wrap; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 13px; min-width: 48px; text-align: center; }
+  .dot { position: relative; display: block; width: 44px; height: 44px; border-radius: 50%; padding: 3px; flex: none; cursor: pointer;
+         background: conic-gradient(#ff5f6d, #ffc371, #8fe3c5, #6fa8ff, #b9a2e8, #ff5fa2, #ff5f6d); }
+  .dot .fill { display: block; width: 100%; height: 100%; border-radius: 50%; border: 2px solid #fff; }
+  .dot input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; margin: 0; }
+  .dot:has(input:focus-visible) { outline: 3px solid var(--lilac); outline-offset: 2px; }
+  .mini { font: inherit; font-size: 13px; font-weight: 650; border: 0; background: none; color: var(--lilac-dark); text-decoration: underline; cursor: pointer; min-height: 32px; padding: 0 4px; }
   .chips.sets { flex-wrap: nowrap; overflow-x: auto; margin: 0 -4px 6px; padding: 2px 4px 6px; -webkit-overflow-scrolling: touch; }
   .chips.sets .chip { flex: none; }
   .swatches.oneline { flex-wrap: nowrap; overflow-x: auto; margin: -5px -4px; padding: 5px 4px; -webkit-overflow-scrolling: touch; }
@@ -250,6 +261,7 @@
 
       <div class="panel hidden" role="tabpanel" id="p-design" aria-labelledby="tab-design">
         <p class="label" id="designLabel"><span>Design</span><span class="now" id="designName" aria-live="polite">Plain</span></p>
+        <div class="recolour" id="colourEdit" aria-label="Change this design's colours"></div>
         <div class="tiles" id="designs" role="group" aria-labelledby="designLabel"></div>
         <div class="group" id="styleGroup">
           <p class="label" id="styleLabel"><span>Glow Nails styles</span><span>from the nail studio</span></p>
@@ -342,14 +354,148 @@ const STYLES = window.GLOW_STYLES || [], STYLE_GROUPS = window.GLOW_STYLE_GROUPS
 const STYLE_KEY = "style:", styleOf = (d) => d && d.startsWith(STYLE_KEY) ? STYLES.find((x) => x.id === d.slice(STYLE_KEY.length)) : null;
 const designName = (d) => { const st = styleOf(d); return st ? st.label : d; };
 const styleImgs = new Map();
-function styleImage(st) { // loads each style picture once; repaints the nails when it arrives
-  let im = styleImgs.get(st.id);
+function styleImage(st) { // loads each style picture (in the customer's colours) once; repaints the nails when it arrives
+  const src = st.view || st.src;
+  let im = styleImgs.get(src);
   if (!im) {
-    im = new Image(); styleImgs.set(st.id, im);
-    im.onload = () => { for (const k of [...texCache.keys()]) if (k.startsWith(STYLE_KEY + st.id + "|")) texCache.delete(k); refreshTiles(); if (frozen) renderPhoto(); };
-    im.src = st.src;
+    if (styleImgs.size > 80) styleImgs.clear();
+    im = new Image(); styleImgs.set(src, im);
+    im.onload = () => {
+      if ((st.view || st.src) === src) st.lastImg = im;
+      for (const k of [...texCache.keys()]) if (k.startsWith(STYLE_KEY + st.id + "|")) texCache.delete(k);
+      refreshTiles(); if (frozen) renderPhoto();
+    };
+    im.src = src;
   }
   return im.complete && im.naturalWidth ? im : null;
+}
+
+/* ---------- Changing a design's colours ----------
+   Built-in designs: a Base circle (the nail colour) and, where the design has one, a second circle (tip, glow, pattern...).
+   Glow Nails styles: one circle per colour in the style. Shades of the same colour are grouped,
+   so changing "Red" moves every red shade together and the shading stays. */
+const ACCENT_NAMES = { "French tip": "Tip", "Micro French": "Tip", "Double French": "Tip", "V tip": "Tip", "Ombré": "Fade to", "Aura": "Glow",
+  "Marble": "Veins", "Swirls": "Swirls", "Polka dots": "Dots", "Daisies": "Petals", "Stars": "Stars", "Hearts": "Hearts", "Leopard": "Spots",
+  "Foil flakes": "Foil", "Glitter fade": "Glitter" };
+const styleColours = {}; // style id -> { colour number: new colour }
+const COLOUR_ATTR = /((?:fill|stroke|stop-color)=")(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})(")/g;
+const hex6 = (h) => { h = h.replace("#", ""); if (h.length === 3) h = h.split("").map((c) => c + c).join(""); return "#" + h.toUpperCase(); };
+function hsl(h) {
+  h = hex6(h); const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16) / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, c = mx - mn;
+  let s = 0, hu = 0;
+  if (c) { s = c / (1 - Math.abs(2 * l - 1)); hu = mx === r ? ((g - b) / c) % 6 : mx === g ? (b - r) / c + 2 : (r - g) / c + 4; hu *= 60; if (hu < 0) hu += 360; }
+  return { h: hu, s: Math.min(1, s), l, c };
+}
+function fromHsl(h, s, l) {
+  h = ((h % 360) + 360) % 360; s = clamp(s, 0, 1); l = clamp(l, 0, 1);
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return "#" + [r, g, b].map((v) => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+function colourName(hex) {
+  const x = hsl(hex), h = x.h;
+  if (x.c < 0.1) return x.l > 0.8 ? "White" : x.l < 0.3 ? "Black" : "Grey";
+  if (h < 15 || h >= 345) return x.l > 0.75 ? "Pink" : "Red";
+  if (h < 35) return x.l < 0.45 ? "Brown" : x.l > 0.72 ? "Nude" : "Orange";
+  if (h < 65) return x.l < 0.65 ? "Gold" : "Yellow";
+  if (h < 170) return x.l > 0.6 ? "Mint" : "Green";
+  if (h < 250) return "Blue";
+  if (h < 290) return "Lilac";
+  return "Pink";
+}
+function families(st) {
+  if (st._fam) return st._fam;
+  st._txt = decodeURIComponent(st.src.slice(st.src.indexOf(",") + 1));
+  const count = new Map();
+  for (const m of st._txt.matchAll(COLOUR_ATTR)) { const k = hex6(m[2]); count.set(k, (count.get(k) || 0) + 1); }
+  const cols = [...count.keys()], info = cols.map(hsl), parent = cols.map((_, i) => i);
+  const find = (i) => parent[i] === i ? i : (parent[i] = find(parent[i]));
+  for (let i = 0; i < cols.length; i++) for (let j = i + 1; j < cols.length; j++) {
+    const a = info[i], b = info[j], na = a.c < 0.1, nb = b.c < 0.1;
+    let same;
+    if (na && nb) same = (a.l < 0.35) === (b.l < 0.35);
+    else if (na || nb) same = false;
+    else { const dh = Math.min(Math.abs(a.h - b.h), 360 - Math.abs(a.h - b.h)); same = dh < 22 && Math.abs(a.l - b.l) < 0.3 && Math.abs(a.c - b.c) < 0.25; }
+    if (same) parent[find(i)] = find(j);
+  }
+  const groups = new Map();
+  cols.forEach((c, i) => { const r = find(i); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(c); });
+  const fam = [...groups.values()].map((members) => ({ members,
+    key: members.reduce((a, b) => count.get(b) > count.get(a) ? b : a),   // the shade used most
+    hue: members.reduce((a, b) => hsl(b).c > hsl(a).c ? b : a) }));        // the strongest shade, for its name
+  // the base is the colour that fills the whole nail; a design that starts with a blend (like ombré) has no base
+  const full = st._txt.match(/<rect width="440" height="1000" fill="([^"]+)"/);
+  let baseAt = full ? (full[1].startsWith("#") ? fam.findIndex((f) => f.members.includes(hex6(full[1]))) : -1) : 0;
+  if (baseAt > 0) { fam.unshift(fam.splice(baseAt, 1)[0]); baseAt = 0; }
+  const used = {};
+  fam.forEach((f, i) => {
+    let n = fam.length === 1 ? "Colour" : i === 0 && baseAt === 0 ? "Base"
+      : (i === 1 && st.group === "Tips") ? (st.id === "half-moon" ? "Moon" : "Tip") : colourName(f.hue);
+    used[n] = (used[n] || 0) + 1; if (used[n] > 1) n += " " + used[n];
+    f.name = n;
+  });
+  return st._fam = fam;
+}
+function recoloured(st) {
+  const ch = styleColours[st.id];
+  if (!ch || !Object.keys(ch).length) return null;
+  const map = new Map();
+  families(st).forEach((f, i) => {
+    const n = ch[i]; if (!n) return;
+    const K = hsl(f.key), N = hsl(n);
+    f.members.forEach((m) => {
+      if (m === f.key) { map.set(m, hex6(n)); return; }
+      const M = hsl(m), plainKey = K.c < 0.1;
+      const h = plainKey ? N.h : M.h + (N.h - K.h);
+      const sat = plainKey ? N.s : M.s * (K.s ? N.s / K.s : 1);
+      const l = M.l >= K.l ? N.l + (M.l - K.l) * (1 - N.l) / ((1 - K.l) || 1) : N.l * M.l / (K.l || 1);
+      map.set(m, fromHsl(h, sat, l));
+    });
+  });
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(st._txt.replace(COLOUR_ATTR, (all, a, c, z) => a + (map.get(hex6(c)) || c) + z));
+}
+// one colour circle: tapping it opens the phone's colour picker
+function circle(row, name, value, role, onPick) {
+  const col = document.createElement("div"), dot = document.createElement("label"), fill = document.createElement("span"), inp = document.createElement("input"), txt = document.createElement("span");
+  col.className = "col"; dot.className = "dot"; fill.className = "fill"; fill.style.background = value;
+  inp.type = "color"; inp.value = hex6(value).toLowerCase(); inp.dataset.role = role || "";
+  inp.setAttribute("aria-label", "Change the " + name.toLowerCase() + " colour");
+  inp.addEventListener("input", () => { fill.style.background = inp.value; onPick(inp.value); });
+  txt.textContent = name; dot.append(fill, inp); col.append(dot, txt); row.appendChild(col);
+}
+function markSwatches(holder, colour) { // the Colour tab shows a tick only if the colour is one of its own
+  [...holder.children].forEach((x) => {
+    const on = x.tagName === "BUTTON" && x.style.background && hex6(rgbHex(x.style.background)) === hex6(colour);
+    if (x.tagName === "BUTTON") x.setAttribute("aria-pressed", String(on)); else x.removeAttribute("aria-pressed");
+  });
+}
+function rgbHex(v) { const m = v.match(/\d+/g); return m ? "#" + m.slice(0, 3).map((n) => (+n).toString(16).padStart(2, "0")).join("") : v; }
+function renderColours() {
+  const box = $("colourEdit"); box.textContent = "";
+  const st = styleOf(pick.design);
+  const t = document.createElement("p"), row = document.createElement("div");
+  t.className = "t"; t.innerHTML = "<span><b>Colours</b> · tap a circle to change it</span>"; row.className = "cols";
+  box.append(t, row);
+  if (st) {
+    const reset = document.createElement("button");
+    reset.type = "button"; reset.className = "mini"; reset.textContent = "Reset colours";
+    reset.hidden = !(styleColours[st.id] && Object.keys(styleColours[st.id]).length);
+    reset.addEventListener("click", () => { delete styleColours[st.id]; st.view = null; renderColours(); changed(); });
+    t.appendChild(reset);
+    families(st).forEach((f, i) => circle(row, f.name, (styleColours[st.id] || {})[i] || f.key, "", (v) => {
+      (styleColours[st.id] = styleColours[st.id] || {})[i] = v; st.view = recoloured(st); reset.hidden = false; changed();
+    }));
+  } else {
+    circle(row, "Base", pick.colour, "colour", (v) => { pick.colour = v; markSwatches($("swatches"), v); changed(); });
+    if (!NO_ACCENT.has(pick.design)) circle(row, ACCENT_NAMES[pick.design] || "Second colour", pick.accent, "accent", (v) => { pick.accent = v; changed(); });
+  }
+}
+function syncCircles() { // when a colour is picked elsewhere, the circles follow
+  document.querySelectorAll("#colourEdit input[type=color]").forEach((inp) => {
+    const v = pick[inp.dataset.role]; if (!v || document.activeElement === inp) return;
+    inp.value = hex6(v).toLowerCase(); inp.previousSibling.style.background = v;
+  });
 }
 const SHAPES = ["Round", "Square", "Almond", "Coffin", "Stiletto"];
 const FINISHES = ["Glossy", "Matte", "Chrome", "Pearl glaze", "Jelly", "Shimmer"];
@@ -365,7 +511,7 @@ try { strokes = JSON.parse(localStorage.getItem(DRAW_KEY)) || []; } catch (e) {}
 function saveStrokes() { try { localStorage.setItem(DRAW_KEY, JSON.stringify(strokes)); } catch (e) {} }
 
 // Called whenever a choice changes: refresh the drawing pad and, if a photo is being held, repaint it
-function changed() { drawVersion++; drawPad(); refreshTiles(); if (frozen) renderPhoto(); }
+function changed() { drawVersion++; drawPad(); refreshTiles(); syncCircles(); if (frozen) renderPhoto(); }
 
 function swatchRow(holder, list, key) {
   // the chosen swatch gets a tick; buttons also tell screen readers which one is chosen
@@ -431,7 +577,8 @@ function styleRow() {
 function designChanged() { // show only the extra choices that this design uses
   $("designName").textContent = designName(pick.design);
   $("drawPanel").classList.toggle("hidden", pick.design !== "Draw your own");
-  $("accentGroup").classList.toggle("hidden", NO_ACCENT.has(pick.design) || !!styleOf(pick.design));
+  $("accentGroup").classList.add("hidden"); // the colour circles above do this job now
+  renderColours();
   $("spreadGroup").classList.toggle("hidden", pick.design === "Plain");
 }
 swatchRow($("swatches"), COLOURS, "colour");
@@ -660,7 +807,8 @@ function gemSpots(W, Ln) { const v0 = 0.72 * W / Ln, dv = W / Ln; return [[0, v0
 
 function nailTexture(design, idx, length) {
   const variant = VARIED.has(design) ? idx : 0; // hand-painted looks differ a little from nail to nail
-  const key = [design, variant, pick.colour, pick.accent, pick.shape, length.toFixed(2), pick.finish, design === "Draw your own" ? drawVersion : 0].join("|");
+  const st = styleOf(design);
+  const key = [design, variant, pick.colour, pick.accent, pick.shape, length.toFixed(2), pick.finish, design === "Draw your own" ? drawVersion : 0, st ? JSON.stringify(styleColours[st.id] || {}) : ""].join("|");
   let tex = texCache.get(key);
   if (!tex) {
     if (texCache.size > 90) texCache.clear();
@@ -839,11 +987,12 @@ function buildTexture(design, variant, length) {
     paintStrokes(g, ([u, v]) => [X(u), Y(v)], Wt); // the customer's drawing
   } else if (styleOf(design)) {
     // a studio style: the picture fills the whole nail and is then cut to the chosen shape, so the shape never changes
-    const im = styleImage(styleOf(design));
+    const st = styleOf(design), fresh = styleImage(st), im = fresh || st.lastImg;
+    if (!fresh) c.pending = true;
     if (im) {
       const k = Math.max(TEX_W / im.naturalWidth, H / im.naturalHeight), w = im.naturalWidth * k, h = im.naturalHeight * k;
       g.drawImage(im, (TEX_W - w) / 2, (H - h) / 2, w, h);
-    } else c.pending = true;
+    }
   }
 
   /* what the finish adds to the artwork itself (the moving shine is added live, in paintNail) */
